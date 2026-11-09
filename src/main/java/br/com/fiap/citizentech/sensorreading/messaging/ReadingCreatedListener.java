@@ -13,9 +13,11 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "app.readings", name = "messaging-enabled", havingValue = "true", matchIfMissing = true)
 public class ReadingCreatedListener {
     private final ReadingAnalysisService analysis;
+    private final br.com.fiap.citizentech.analysis.service.AgronomicAnalysisService agronomicAnalysis;
 
     @RabbitListener(queues = ReadingMessagingConfig.QUEUE)
     public void onCreated(SensorReadingCreated event) {
         analysis.queue(event);
+        agronomicAnalysis.process(event.readingId());
     }
 }

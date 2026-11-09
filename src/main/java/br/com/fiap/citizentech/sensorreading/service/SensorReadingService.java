@@ -32,6 +32,7 @@ public class SensorReadingService {
     private final UserRepository users;
     private final OutboxRepository outbox;
     private final ObjectMapper mapper;
+    private final br.com.fiap.citizentech.analysis.repository.AgronomicAnalysisRepository analyses;
 
     @Transactional
     public ReadingResponse create(String email, CreateReadingRequest request) {
@@ -100,6 +101,8 @@ public class SensorReadingService {
             throw new BusinessException(HttpStatus.CONFLICT, "Leituras ANALYZED não podem ser excluídas");
         }
         outbox.cancelPending("SensorReading", id, "Leitura removida antes da publicação");
+        analyses.findByReadingId(id).ifPresent(analyses::delete);
+        analyses.flush();
         readings.delete(reading);
         readings.flush();
     }

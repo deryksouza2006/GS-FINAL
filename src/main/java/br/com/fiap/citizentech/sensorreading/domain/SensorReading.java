@@ -47,6 +47,10 @@ public class SensorReading extends BaseEntity {
         this.analysisStatus = ReadingAnalysisStatus.PENDING_PUBLICATION;
     }
 
+    public void analyzed() { analysisStatus = ReadingAnalysisStatus.ANALYZED; }
+    public void analysisFailed() { analysisStatus = ReadingAnalysisStatus.FAILED; }
+    public void retryAnalysis() { analysisStatus = ReadingAnalysisStatus.QUEUED_FOR_ANALYSIS; }
+
     public void queueForAnalysis() {
         if (analysisStatus == ReadingAnalysisStatus.PENDING_PUBLICATION) {
             analysisStatus = ReadingAnalysisStatus.QUEUED_FOR_ANALYSIS;

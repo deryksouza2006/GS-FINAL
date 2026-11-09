@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.Optional;
 
 public interface SensorRepository extends JpaRepository<Sensor, Long> {
+    @Query("select distinct s.sensorType from Sensor s where s.cropArea.id=:cropId and s.status=br.com.fiap.citizentech.sensor.domain.SensorStatus.ACTIVE order by s.sensorType")
+    java.util.List<br.com.fiap.citizentech.sensor.domain.SensorType> activeTypes(Long cropId);
     boolean existsByCropAreaId(Long cropAreaId);
 
     boolean existsByDeviceCodeIgnoreCase(String deviceCode);

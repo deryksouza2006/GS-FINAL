@@ -12,7 +12,7 @@ O nome definitivo do produto ainda será escolhido.
 - PostgreSQL com PGvector
 - Flyway
 - RabbitMQ
-- Spring AI com OpenAI
+- Spring AI 2.0.2 com Gemini Developer API e RAG/PGVector
 - Docker Compose
 
 ## Execução local
@@ -27,7 +27,7 @@ docker compose up -d
 3. Exporte as variáveis de `.env` no terminal ou configure-as no ambiente de execução da IDE.
    O Docker Compose lê `.env`, mas isso não exporta as variáveis para o processo Java.
    Defina `JWT_SECRET` com um segredo aleatório de pelo menos 32 caracteres, mantido fora do repositório.
-   `OPENAI_API_KEY` só será necessária quando a integração de IA for utilizada.
+   `GOOGLE_API_KEY` só é necessária com `APP_AI_ENABLED=true`. Por padrão, a IA fica desativada.
 4. Inicie a API:
 
 ```bash
@@ -51,8 +51,8 @@ No PowerShell, use `./mvnw.cmd spring-boot:run` e configure as variáveis com
 - Propriedade: sempre vinculada ao proprietário autenticado.
 - Área de cultivo: sempre vinculada a uma propriedade do usuário.
 
-Os próximos módulos serão medições agrícolas,
-análises assíncronas, Spring AI e RAG.
+Sensores registram medições agrícolas. A análise agronômica assíncrona utiliza Gemini,
+Spring AI e RAG institucional, quando explicitamente habilitada.
 
 ## Autenticação JWT
 
@@ -530,7 +530,8 @@ permanecem intactas.
    após o limite, a outbox fica `FAILED`, com evento e leitura preservados.
 5. O listener muda apenas `PENDING_PUBLICATION` para `QUEUED_FOR_ANALYSIS`, com transação
    de banco concluída antes do ACK da mensagem. Repetições em `QUEUED_FOR_ANALYSIS` ou
-   `ANALYZED` não geram alteração. Não há chamada de IA: **Spring AI será conectado na próxima etapa**.
+   `ANALYZED` não geram alteração. Com a IA desativada, a leitura permanece em
+   `QUEUED_FOR_ANALYSIS`; quando habilitada, segue para a análise agronômica descrita abaixo.
 
 A entrega é **at least once**: queda após o envio e antes do commit da outbox pode
 republicar o evento. A transição idempotente absorve essa duplicação.
@@ -649,3 +650,211 @@ Referências: [Spring Boot AMQP](https://docs.spring.io/spring-boot/reference/me
 [publisher confirms e returns](https://docs.spring.io/spring-amqp/reference/amqp/template.html),
 [OAuth2 Resource Server JWT](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
 e [testes MVC no Spring Boot 4](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/webmvc/test/autoconfigure/package-summary.html).
+
+## Análise agronômica com Gemini e RAG
+
+Este módulo produz uma análise de cada leitura para apoiar decisões de manejo do pequeno
+produtor. Não é um chat. A recomendação apoia, mas **não substitui um engenheiro agrônomo**.
+Não gera orientação fictícia se a IA estiver desativada ou indisponível.
+
+O BOM oficial do Spring AI **2.0.2**, compatível com Spring Boot 4.1.x, gerencia os starters
+`spring-ai-starter-model-google-genai`,
+`spring-ai-starter-model-google-genai-embedding` e
+`spring-ai-starter-vector-store-pgvector`. Não há dependência direta adicionada do SDK Google.
+A conversa usa `gemini-2.5-flash`, temperatura 0.2, no máximo 2.000 tokens de saída,
+JSON e conversão estruturada para `AgronomicAdvice`. Google Search permanece desativado.
+
+O embedding é **gemini-embedding-001**, reduzido a **768 dimensões**, conforme a escolha
+de atualização: o Google encerrou `text-embedding-004` em janeiro de 2026.
+Os modelos são externalizados; disponibilidade e cotas dependem da conta Google.
+Não altere o modelo de embedding de um índice existente sem reindexar todo o corpus.
+
+### Arquitetura e persistência
+
+1. A API persiste leitura e `SensorReadingCreated` atomicamente na outbox.
+2. O publicador existente seleciona eventos commitados com `FOR UPDATE SKIP LOCKED`,
+   confirma a publicação no RabbitMQ e atualiza a outbox. Esse fluxo foi preservado.
+3. O listener prepara a leitura como `QUEUED_FOR_ANALYSIS`. Com `APP_AI_ENABLED=false`,
+   confirma a mensagem nesse ponto, sem instanciar clientes reais de IA.
+4. Com IA habilitada, uma transação curta reserva uma análise `PROCESSING`, com token
+   e prazo de expiração. A unicidade de `reading_id` e o bloqueio da leitura impedem
+   duas reservas ativas. Uma entrega de análise concluída não chama o modelo novamente.
+5. Fora de transação, o serviço reúne contexto, recupera até quatro trechos PGVector
+   e chama o Gemini via `ChatClient`. Valida enums, textos e listas da resposta estruturada.
+6. Outra transação grava `COMPLETED` e marca a leitura `ANALYZED`. O token da reserva
+   impede que um trabalhador antigo sobrescreva uma tentativa mais nova.
+   O scheduler recupera reservas abandonadas a cada 30 segundos, em lotes de dez,
+   gravando novo evento atomicamente na outbox, inclusive após reinício da aplicação.
+7. Falhas mantêm a leitura em fila durante retries com backoff. O limite da IA ou o
+   esgotamento de entregas marca `FAILED` e permite a DLQ existente. A API permite
+   retry manual, sempre criando novo evento pela outbox.
+
+A migration **V6__agronomic_analysis_and_rag.sql** preserva V1–V5. Cria
+`agronomic_analyses`, suas FKs sem cascade remove, índices e JSONB das listas/fontes.
+Cria manualmente o armazenamento vetorial `agronomy_vector_store`, com `vector(768)`
+e índice HNSW por cosseno, e o controle `rag_ingestion`.
+O nome separado preserva eventual `vector_store` antigo criado automaticamente com
+dimensão de outro provedor. Flyway é a única fonte do schema; a inicialização automática
+de PGVector está desativada.
+
+Uma leitura ainda não analisada pode ser removida junto com sua análise intermediária,
+explicitamente, sob bloqueio da leitura; uma resposta externa em trânsito não a recria.
+Leituras `ANALYZED` continuam protegidas contra exclusão.
+
+### Contexto, fontes e limites
+
+O contexto contém cultura, área/unidade, descrição, cidade/UF, medição recebida,
+última medição disponível por tipo de sensor ativo, horários e tipos ativos.
+Medições com mais de 24 horas são sinalizadas. Ausência de dados e falta de informações
+sobre estádio, solo e chuva limitam a confiança da análise.
+
+Não são enviados nome/e-mail do proprietário, credenciais, deviceCode ou IDs internos.
+Padrões comuns de contato e token em texto livre são removidos antes do envio.
+Evite inserir dados pessoais em cultura e descrição. Esses campos são serializados
+como dados não confiáveis: o prompt de sistema instrui a ignorar comandos neles.
+Prompts, respostas brutas e chaves não são persistidos nem registrados pela aplicação.
+Erros armazenados são mensagens genéricas, limitadas; a API não expõe erro técnico.
+O contexto possui limite de 16.000 caracteres e toda a operação externa tem deadline.
+Até quatro chamadas trabalham simultaneamente, com fila limitada.
+
+Os resumos curtos, em palavras próprias, estão em
+`src/main/resources/rag/agronomy/`, com identificador, versão, título, instituição,
+URL, tema e data de acesso. Fontes iniciais:
+
+- [Embrapa — manejo da irrigação do milho](https://www.embrapa.br/en/web/agencia-de-informacao-tecnologica/cultivos/milho/producao/irrigacao/manejo)
+- [Embrapa — umidade do solo na agricultura familiar](https://www.infoteca.cnptia.embrapa.br/handle/doc/974063)
+- [Embrapa — desenvolvimento do milho](https://www.embrapa.br/web/agencia-de-informacao-tecnologica/cultivos/milho/pre-producao/caracteristicas-da-especie-e-relacoes-com-o-ambiente/caracteristicas-da-planta)
+- [FAO — gestão da irrigação](https://www.fao.org/land-water/water/agricultural-water-management/irrigation/en)
+
+O carregador roda somente com IA habilitada. Divide textos em trechos de até 1.000
+caracteres, usa UUIDs determinísticos e checksum por fonte/modelo para não repetir
+embeddings inalterados, e remove trechos antigos da mesma fonte após atualização.
+Os metadados incluem `sourceId`, `title`, `institution`, `url`, `topic` e `version`.
+A busca restringe-se ao corpus agronômico e preserva títulos/URLs dos documentos,
+sem aceitar fontes inventadas pelo modelo. Menos de três trechos atribuídos gera
+aviso explícito de contexto insuficiente. A qualidade é limitada a PARTIAL quando
+existem limitações identificadas pela aplicação.
+
+O prompt versionado está em `prompts/agronomic-analysis-v1.txt`. Exige português,
+evidência fornecida e dados ausentes explícitos. Proíbe inventar chuva, clima, pragas,
+diagnósticos ou solo e recomendar agrotóxicos, dosagens ou químicos.
+Não há limiar universal de irrigação nem transformação automática de umidade percentual
+em tensão de água. A saída do modelo exige conferência humana.
+
+### Habilitação
+
+Crie uma chave no [Google AI Studio](https://aistudio.google.com/apikey), seguindo a
+[documentação de chaves do Gemini](https://ai.google.dev/gemini-api/docs/api-key).
+Verifique acesso aos modelos, limites de uso e cobrança da conta. Guarde a chave
+somente no ambiente local/gerenciador de segredos. Não a coloque no README ou no Git.
+
+O `.env.example` contém somente o campo vazio `GOOGLE_API_KEY=` e
+`APP_AI_ENABLED=false` para esta integração, além das variáveis de infraestrutura
+já existentes. O Compose não exporta essas variáveis para o Java.
+
+```powershell
+# Use o .env local já configurado, sem sobrescrevê-lo.
+Get-Content .env | ForEach-Object {
+  if ($_ -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
+    [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+  }
+}
+docker compose up -d
+# Digite a chave localmente; não há chave no comando.
+$secret = Read-Host 'GOOGLE_API_KEY' -AsSecureString
+$env:GOOGLE_API_KEY = [System.Net.NetworkCredential]::new('', $secret).Password
+$env:APP_AI_ENABLED = 'true'
+./mvnw.cmd spring-boot:run
+```
+
+A API continua em http://localhost:8080 e o painel RabbitMQ em http://localhost:15672.
+Sem a chave, mantenha `APP_AI_ENABLED=false`. Mensagens já confirmadas enquanto a IA
+estava desligada precisam de retry pela API depois da habilitação.
+
+| Configuração / variável | Padrão |
+| --- | --- |
+| `app.ai.enabled` / `APP_AI_ENABLED` | false |
+| `GOOGLE_API_KEY` | vazio, obrigatório somente com IA real habilitada |
+| `AI_CHAT_MODEL` / `AI_EMBEDDING_MODEL` | gemini-2.5-flash / gemini-embedding-001 |
+| `AI_TEMPERATURE` / `AI_MAX_OUTPUT_TOKENS` | 0.2 / 2000 |
+| `AI_RAG_TOP_K` / `AI_RAG_SIMILARITY_THRESHOLD` | 4 (entre 3 e 5) / 0.3 |
+| `AI_STALE_AFTER` | 24h |
+| `AI_CALL_TIMEOUT` / `AI_PROCESSING_TIMEOUT` | 45s / 2m; reserva deve durar mais que a chamada |
+| `AI_MAX_ATTEMPTS` | 3 por ciclo de processamento; retries Rabbit também são limitados |
+| `AI_RECOVERY_INTERVAL_MS` | 30000, recuperação de reservas expiradas junto ao scheduler da outbox |
+| `AI_RETRY_COOLDOWN` / `AI_MAX_MANUAL_RETRIES` | 60s / 3 por leitura |
+| `AI_MAX_CONTEXT_CHARS` | 16000 |
+
+### API e demonstração PowerShell
+
+Todos os endpoints exigem JWT de PRODUCER ativo, identificado pelo subject.
+Recursos de outros produtores retornam 404. As páginas ordenam criação decrescente.
+
+| Método | Rota |
+| --- | --- |
+| GET | /api/analyses?page=0&size=20 |
+| GET | /api/analyses/{id} |
+| GET | /api/sensor-readings/{readingId}/analysis |
+| GET | /api/crop-areas/{cropAreaId}/analyses?page=0&size=20 |
+| POST | /api/sensor-readings/{readingId}/analysis/retry |
+
+Retry retorna **202**, estado incompatível retorna **409** e limite/cooldown **429**.
+É permitido para análise FAILED ou leitura QUEUED_FOR_ANALYSIS sem conclusão.
+Uma reserva PROCESSING ativa bloqueia retry; expirada, pode ser recuperada.
+
+Com `$token` obtido no login e `$sensorId` de sensor ACTIVE próprio
+(o corpo abaixo atende todos os tipos atuais):
+
+```powershell
+$base = 'http://localhost:8080'
+$reading = @{
+  sensorId = $sensorId
+  temperatureCelsius = 27
+  airHumidityPercent = 58
+  soilMoisturePercent = 35
+  batteryPercent = 90
+} | ConvertTo-Json -Compress |
+  curl.exe -sS "$base/api/sensor-readings" -H "Authorization: Bearer $token" -H 'Content-Type: application/json' --data-binary '@-' |
+  ConvertFrom-Json
+
+$readingId = $reading.id
+# Inicialmente pode retornar 404: o consumidor ainda não criou a análise.
+for ($i = 0; $i -lt 30; $i++) {
+  $analysis = curl.exe -sS "$base/api/sensor-readings/$readingId/analysis" -H "Authorization: Bearer $token" |
+    ConvertFrom-Json
+  $analysis | ConvertTo-Json -Depth 8
+  if ($analysis.status -in @('COMPLETED', 'FAILED')) { break }
+  Start-Sleep -Seconds 3
+}
+curl.exe -i "$base/api/analyses?page=0&size=20" -H "Authorization: Bearer $token"
+curl.exe -i "$base/api/crop-areas/$cropAreaId/analyses?page=0&size=20" -H "Authorization: Bearer $token"
+# Somente quando a análise falhar ou a leitura permanecer em fila:
+curl.exe -i -X POST "$base/api/sensor-readings/$readingId/analysis/retry" -H "Authorization: Bearer $token"
+```
+
+### Testes da análise
+
+A suíte comum não chama Google: desativa os modelos reais e usa
+`FakeAnalysisConfiguration`, inclusive falha e timeout determinísticos.
+O RAG é exercitado no PGVector real com embedding determinístico de teste.
+São verificados saída estruturada, privacidade, contexto não confiável, fontes,
+idempotência, reserva concorrente/abandonada, retry, isolamento e endpoints.
+Os testes RabbitMQ existentes continuam validando publicação/consumo com IA desligada.
+
+O teste real é opcional, desativado por padrão e pode consumir cota/cobrança:
+
+```powershell
+# Configure GOOGLE_API_KEY no processo conforme explicado acima.
+$env:RUN_GEMINI_MANUAL_TEST = 'true'
+./mvnw.cmd '-Dtest=GeminiManualTests' test
+Remove-Item Env:RUN_GEMINI_MANUAL_TEST
+```
+
+Ele usa PostgreSQL descartável e chama embeddings/chat reais, sem RabbitMQ externo.
+Não é executado na build comum. Para a validação completa sem chave:
+`./mvnw.cmd clean package`.
+
+Referências: [compatibilidade Spring AI](https://docs.spring.io/spring-ai/reference/getting-started.html),
+[Google GenAI Chat](https://docs.spring.io/spring-ai/reference/api/chat/google-genai-chat.html),
+[Google GenAI embeddings](https://docs.spring.io/spring-ai/reference/api/embeddings/google-genai-embeddings-text.html)
+e [ciclo de vida dos modelos Google](https://ai.google.dev/gemini-api/docs/deprecations?hl=en).

@@ -1,4 +1,12 @@
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiEmbeddingConnectionAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiTextEmbeddingAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.image.GoogleGenAiImageAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.image.GoogleGenAiImageConnectionAutoConfiguration
+      - org.springframework.ai.vectorstore.pgvector.autoconfigure.PgVectorStoreAutoConfiguration
   application:
     name: citizentech-api
   jackson:
@@ -39,11 +47,35 @@ spring:
           multiplier: 2
           max-interval: 10s
   ai:
-    openai:
-      api-key: ${OPENAI_API_KEY:no-key-configured}
+    chat:
+      observations:
+        log-prompt: false
+        log-completion: false
+        include-error-logging: false
+    retry:
+      max-attempts: 1
+    google:
+      genai:
+        api-key: ${GOOGLE_API_KEY:}
+        vertex-ai: false
+        chat:
+          model: ${app.ai.model}
+          temperature: ${AI_TEMPERATURE:0.2}
+          max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:2000}
+          thinking-budget: 0
+          google-search-retrieval: false
+          response-mime-type: application/json
+        embedding:
+          api-key: ${GOOGLE_API_KEY:}
+          vertex-ai: false
+          text:
+            model: ${app.ai.embedding-model}
+            dimensions: 768
     vectorstore:
       pgvector:
-        initialize-schema: true
+        initialize-schema: false
+        table-name: agronomy_vector_store
+        dimensions: 768
         index-type: HNSW
         distance-type: COSINE_DISTANCE
 
@@ -60,6 +92,20 @@ management:
       show-details: when-authorized
 
 app:
+  ai:
+    enabled: ${APP_AI_ENABLED:false}
+    model: ${AI_CHAT_MODEL:gemini-2.5-flash}
+    embedding-model: ${AI_EMBEDDING_MODEL:gemini-embedding-001}
+    top-k: ${AI_RAG_TOP_K:4}
+    similarity-threshold: ${AI_RAG_SIMILARITY_THRESHOLD:0.3}
+    stale-after: ${AI_STALE_AFTER:24h}
+    call-timeout: ${AI_CALL_TIMEOUT:45s}
+    processing-timeout: ${AI_PROCESSING_TIMEOUT:2m}
+    recovery-interval-ms: ${AI_RECOVERY_INTERVAL_MS:30000}
+    max-attempts: ${AI_MAX_ATTEMPTS:3}
+    retry-cooldown: ${AI_RETRY_COOLDOWN:60s}
+    max-manual-retries: ${AI_MAX_MANUAL_RETRIES:3}
+    max-context-chars: ${AI_MAX_CONTEXT_CHARS:16000}
   readings:
     messaging-enabled: ${READINGS_MESSAGING_ENABLED:true}
   outbox:
