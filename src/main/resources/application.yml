@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: citizentech-api
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/citizentech}
+    username: ${DB_USERNAME:citizentech}
+    password: ${DB_PASSWORD:citizentech}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    connection-timeout: 3s
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+        prefetch: 10
+        retry:
+          enabled: true
+          max-retries: ${READINGS_CONSUMER_MAX_RETRIES:2}
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 10s
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:no-key-configured}
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+app:
+  readings:
+    messaging-enabled: ${READINGS_MESSAGING_ENABLED:true}
+  outbox:
+    enabled: ${OUTBOX_ENABLED:true}
+    batch-size: ${OUTBOX_BATCH_SIZE:10}
+    poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:5000}
+    retry-delay-ms: ${OUTBOX_RETRY_DELAY_MS:30000}
+    max-attempts: ${OUTBOX_MAX_ATTEMPTS:5}
+    confirm-timeout-ms: ${OUTBOX_CONFIRM_TIMEOUT_MS:5000}
+  security:
+    jwt:
+      issuer: ${JWT_ISSUER:citizentech-api}
+      secret: ${JWT_SECRET:change-this-development-secret-with-at-least-32-characters}
+      expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
