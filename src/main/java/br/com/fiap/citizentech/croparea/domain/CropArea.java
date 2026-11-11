@@ -72,6 +72,8 @@ public class CropArea extends BaseEntity {
         this.status = CropAreaStatus.NORMAL;
     }
 
+    public void archive(boolean archived) { this.status = archived ? CropAreaStatus.ARCHIVED : CropAreaStatus.NORMAL; }
+
     public void update(Farm farm, String name, String cropType, BigDecimal areaSize, AreaUnit areaUnit,
                        BigDecimal latitude, BigDecimal longitude, String description) {
         this.farm = farm;

@@ -32,12 +32,49 @@ public class SensorReadingService {
     private final UserRepository users;
     private final OutboxRepository outbox;
     private final ObjectMapper mapper;
+    private final org.springframework.security.crypto.password.PasswordEncoder deviceEncoder;
+
+    @Transactional
+    public String rotateDeviceKey(String email, Long sensorId) {
+        var sensor = sensors.findOwnedForUpdate(sensorId, producer(email).getId())
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Sensor não encontrado"));
+        byte[] bytes = new byte[32];
+        new java.security.SecureRandom().nextBytes(bytes);
+        String key = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        sensor.configureDeviceKey(deviceEncoder.encode(key));
+        return key;
+    }
+
+    @PreAuthorize("permitAll()")
+    @Transactional
+    public ReadingResponse ingestDevice(String key, CreateReadingRequest request) {
+        var sensor = sensors.lockDevice(request.sensorId()).orElse(null);
+        if (sensor == null || key == null || key.length() != 43 || sensor.deviceKeyHash() == null
+                || !deviceEncoder.matches(key, sensor.deviceKeyHash())) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "Credencial do sensor inválida");
+        }
+        var owner = sensor.getCropArea().getFarm().getOwner();
+        if (!owner.isEnabled() || owner.getRole() != UserRole.PRODUCER) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "Sensor indisponível");
+        }
+        return recordReading(sensor, owner.getId(), request, ReadingSource.DEVICE);
+    }
     private final br.com.fiap.citizentech.analysis.repository.AgronomicAnalysisRepository analyses;
 
     @Transactional
     public ReadingResponse create(String email, CreateReadingRequest request) {
         var sensor = sensors.findOwnedForUpdate(request.sensorId(), producer(email).getId())
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Sensor não encontrado"));
+        return recordReading(sensor, sensor.getCropArea().getFarm().getOwner().getId(), request, ReadingSource.MANUAL);
+    }
+
+    private ReadingResponse recordReading(br.com.fiap.citizentech.sensor.domain.Sensor sensor, Long ownerId,
+                                          CreateReadingRequest request, ReadingSource source) {
+        var area = cropAreas.findOwnedForUpdate(sensor.getCropArea().getId(), ownerId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Cultivo não encontrado"));
+        if (area.getStatus() == br.com.fiap.citizentech.croparea.domain.CropAreaStatus.ARCHIVED) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Cultivo arquivado");
+        }
         if (sensor.getStatus() != SensorStatus.ACTIVE) {
             throw new BusinessException(HttpStatus.CONFLICT, "Somente sensores ACTIVE podem registrar leituras");
         }
@@ -53,8 +90,10 @@ public class SensorReadingService {
         if (!compatible) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Informe a medição obrigatória para o tipo do sensor");
         }
-        var reading = readings.saveAndFlush(new SensorReading(sensor, request.temperatureCelsius(), request.airHumidityPercent(),
-                request.soilMoisturePercent(), request.batteryPercent(), request.measuredAt()));
+        var reading = new SensorReading(sensor, request.temperatureCelsius(), request.airHumidityPercent(),
+                request.soilMoisturePercent(), request.batteryPercent(), request.measuredAt(), source);
+        reading.rainfall(request.rainfallMillimeters(),request.rainfallIntervalStart());
+        readings.saveAndFlush(reading);
         UUID eventId = UUID.randomUUID();
         var event = SensorReadingCreated.from(eventId, reading);
         outbox.saveAndFlush(new OutboxEvent(eventId, "SensorReading", reading.getId(), "SensorReadingCreated",

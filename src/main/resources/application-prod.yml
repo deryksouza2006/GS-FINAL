@@ -1,0 +1,8 @@
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+spring:
+  docker:
+    compose:
+      enabled: false

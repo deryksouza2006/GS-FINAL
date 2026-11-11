@@ -51,7 +51,9 @@ class SensorReadingIntegrationTests extends ReadingTestSupport {
         body.put("sensorId", f.sensorId());
         body.put(measurement, 30);
         var response = create(f, body);
-        assertThat(response.size()).isEqualTo(17);
+        assertThat(response.size()).isEqualTo(19);
+        assertThat(response.get("rainfallMillimeters").isNull()).isTrue();
+        assertThat(response.get("rainfallIntervalStart").isNull()).isTrue();
         assertThat(response.get("source").asString()).isEqualTo("MANUAL");
         assertThat(response.get("analysisStatus").asString()).isEqualTo("PENDING_PUBLICATION");
         assertThat(Instant.parse(response.get("measuredAt").asString())).isBetween(before, Instant.now());

@@ -1,0 +1,4 @@
+ALTER TABLE risk_jobs ADD COLUMN started_at TIMESTAMPTZ;
+ALTER TABLE risk_jobs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE risk_jobs ADD COLUMN error_message VARCHAR(200);
+ALTER TABLE risk_jobs ADD COLUMN thresholds JSONB;

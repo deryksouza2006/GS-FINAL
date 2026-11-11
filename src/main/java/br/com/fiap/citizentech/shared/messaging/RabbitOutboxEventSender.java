@@ -18,7 +18,8 @@ public class RabbitOutboxEventSender implements OutboxEventSender {
 
     @Override
     public void send(OutboxEvent event) {
-        if (!"SensorReadingCreated".equals(event.getEventType())) {
+        boolean riskJob = "RiskAnalysisRequested".equals(event.getEventType());
+        if (!riskJob && !"SensorReadingCreated".equals(event.getEventType())) {
             throw new IllegalArgumentException("Tipo de evento não suportado");
         }
         var correlation = new CorrelationData(event.getEventId() + "-" + event.getAttempts());
@@ -26,7 +27,7 @@ public class RabbitOutboxEventSender implements OutboxEventSender {
                 .setContentType("application/json").setContentEncoding("UTF-8")
                 .setDeliveryMode(MessageDeliveryMode.PERSISTENT).setMessageId(event.getEventId().toString())
                 .setType(event.getEventType()).build();
-        rabbit.send(ReadingMessagingConfig.EXCHANGE, ReadingMessagingConfig.ROUTING_KEY, message, correlation);
+        rabbit.send(ReadingMessagingConfig.EXCHANGE, riskJob ? "risk.analysis.requested" : ReadingMessagingConfig.ROUTING_KEY, message, correlation);
         try {
             var confirm = correlation.getFuture().get(properties.confirmTimeoutMs(), TimeUnit.MILLISECONDS);
             if (!confirm.ack() || correlation.getReturned() != null) {

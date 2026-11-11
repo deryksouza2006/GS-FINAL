@@ -9,8 +9,13 @@ import tools.jackson.databind.ObjectMapper;
 @Configuration(proxyBeanMethods=false)
 public class AnalysisDeliveryConfig {
     @Bean
-    MessageRecoverer analysisMessageRecoverer(AnalysisTransactions transactions,ObjectMapper mapper,AiProperties properties) {
+    MessageRecoverer analysisMessageRecoverer(AnalysisTransactions transactions,ObjectMapper mapper,AiProperties properties,
+            br.com.fiap.citizentech.water.RiskJobFailureService riskFailures) {
         return (message,cause) -> {
+            try {
+                var payload=mapper.readTree(message.getBody());
+                if(payload.has("jobId")) riskFailures.fail(payload.get("jobId").asLong());
+            } catch(RuntimeException ignored) { }
             if(properties.enabled()) {
                 try {
                     var node=mapper.readTree(message.getBody());

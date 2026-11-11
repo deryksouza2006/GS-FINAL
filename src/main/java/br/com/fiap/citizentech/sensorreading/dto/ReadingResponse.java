@@ -9,7 +9,7 @@ public record ReadingResponse(Long id, Long sensorId, String sensorName, SensorT
         Long cropAreaId, String cropAreaName, Long farmId, String farmName,
         BigDecimal temperatureCelsius, BigDecimal airHumidityPercent, BigDecimal soilMoisturePercent,
         BigDecimal batteryPercent, Instant measuredAt, ReadingSource source, ReadingAnalysisStatus analysisStatus,
-        Instant createdAt, Instant updatedAt) {
+        Instant createdAt, Instant updatedAt, BigDecimal rainfallMillimeters, Instant rainfallIntervalStart) {
     public static ReadingResponse from(SensorReading reading) {
         var sensor = reading.getSensor();
         var crop = sensor.getCropArea();
@@ -17,6 +17,7 @@ public record ReadingResponse(Long id, Long sensorId, String sensorName, SensorT
         return new ReadingResponse(reading.getId(), sensor.getId(), sensor.getName(), sensor.getSensorType(),
                 crop.getId(), crop.getName(), farm.getId(), farm.getName(), reading.getTemperatureCelsius(),
                 reading.getAirHumidityPercent(), reading.getSoilMoisturePercent(), reading.getBatteryPercent(),
-                reading.getMeasuredAt(), reading.getSource(), reading.getAnalysisStatus(), reading.getCreatedAt(), reading.getUpdatedAt());
+                reading.getMeasuredAt(), reading.getSource(), reading.getAnalysisStatus(), reading.getCreatedAt(), reading.getUpdatedAt(),
+                reading.getRainfallMillimeters(),reading.getRainfallIntervalStart());
     }
 }

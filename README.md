@@ -1,7 +1,7 @@
-# CitizenTech API
+# Agro Conecta API
 
-Backend provisório da solução CitizenTech voltada ao apoio inteligente de pequenos produtores.
-O nome definitivo do produto ainda será escolhido.
+Backend Java de monitoramento hídrico e diário agrícola para pequenos produtores.
+O guia dos contratos, do ambiente de demonstração e da operação está em [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 ## Tecnologias iniciais
 

@@ -34,6 +34,16 @@ public class CropAreaService {
     private final UserRepository users;
     private final CropAreaCapacityService capacity;
     private final SensorRepository sensors;
+    private final br.com.fiap.citizentech.activity.ActivityRepository activities;
+    private final br.com.fiap.citizentech.water.ProfileRepository profiles;
+    private final br.com.fiap.citizentech.water.RiskJobRepository riskJobs;
+
+    @Transactional
+    public CropAreaResponse archive(String email, Long id, boolean archived) {
+        CropArea area = cropAreas.findOwnedForUpdate(id, producer(email).getId()).orElseThrow(this::areaNotFound);
+        area.archive(archived);
+        return CropAreaResponse.from(cropAreas.saveAndFlush(area));
+    }
 
     @Transactional
     public CropAreaResponse create(String email, CropAreaRequest request) {
@@ -83,6 +93,9 @@ public class CropAreaService {
     public void delete(String email, Long id) {
         Long ownerId = producer(email).getId();
         CropArea area = cropAreas.findOwnedForUpdate(id, ownerId).orElseThrow(this::areaNotFound);
+        if (activities.existsByCropAreaId(id) || profiles.existsByCropAreaId(id) || riskJobs.existsByCropAreaId(id)) {
+            throw new BusinessException(HttpStatus.CONFLICT,"Cultivo com histórico deve ser arquivado");
+        }
         if (sensors.existsByCropAreaId(id)) {
             throw linkedSensors();
         }

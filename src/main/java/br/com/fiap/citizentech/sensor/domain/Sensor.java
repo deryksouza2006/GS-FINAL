@@ -51,6 +51,11 @@ public class Sensor extends BaseEntity {
 
     @Column(length = 500)
     private String description;
+    @Column(length=255) @Getter(lombok.AccessLevel.NONE)
+    private String deviceKeyHash;
+
+    public void configureDeviceKey(String hash) { deviceKeyHash = hash; }
+    public String deviceKeyHash() { return deviceKeyHash; }
 
     public Sensor(CropArea cropArea, String name, String deviceCode, SensorType sensorType,
                   LocalDate installationDate, String description) {

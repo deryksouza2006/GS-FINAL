@@ -29,6 +29,54 @@ class ReadingRabbitIntegrationTests extends ReadingTestSupport {
     @Autowired RabbitTemplate rabbit;
 
     @Test
+    void sensorDeviceCreatesTraceableRiskJobAndAlert() throws Exception {
+        var f = fixture("risk-" + UUID.randomUUID() + "@teste.com", "WEATHER_STATION");
+        try {
+            var key = json(send("POST", "/api/sensors/" + f.sensorId() + "/device-key", f.token(), null)
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()))
+                    .get("deviceKey").asString();
+            var input = body(f);
+            input.put("soilMoisturePercent", 13);
+            var deviceRequest = org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/device-readings")
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input));
+            mvc.perform(deviceRequest).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized());
+            var device = json(mvc.perform(deviceRequest.header("X-Device-Key", key))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isCreated()));
+            assertThat(device.get("source").asString()).isEqualTo("DEVICE");
+            String crop = "/api/crop-areas/" + f.cropId();
+            send("PUT", crop + "/agronomic-profile", f.token(), java.util.Map.of(
+                    "soilTexture", "argiloso", "fieldCapacityPercent", 32, "wiltingPointPercent", 12,
+                    "source", "DEMO", "demo", true))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+            long id = json(send("POST", crop + "/risk-jobs", f.token(), null)
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isAccepted())).get("id").asLong();
+            assertThat(publisher.publishPending()).isEqualTo(2);
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
+                    assertThat(jdbc.queryForObject("SELECT status FROM risk_jobs WHERE id=?", String.class, id))
+                            .isEqualTo("COMPLETED_WITHOUT_AI"));
+            var alert = json(send("GET", "/api/alerts/" + id, f.token(), null)
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk()));
+            assertThat(alert.get("result").get("riskLevel").asString()).isEqualTo("CRITICAL");
+            assertThat(alert.get("alert").get("type").asString()).isEqualTo("LOW_SOIL_WATER");
+            send("GET", "/api/dashboard", f.token(), null)
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+            send("GET", "/api/sensors/" + f.sensorId() + "/health", f.token(), null)
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+            var event = outbox.findAll().stream().filter(e -> "RiskAnalysisRequested".equals(e.getEventType())
+                    && e.getAggregateId().equals(id)).findFirst().orElseThrow();
+            rabbit.send(ReadingMessagingConfig.EXCHANGE, "risk.analysis.requested",
+                    new Message(event.getPayload().getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            await().during(Duration.ofMillis(500)).atMost(Duration.ofSeconds(3)).untilAsserted(() ->
+                    assertThat(jdbc.queryForObject("SELECT attempts FROM risk_jobs WHERE id=?", Integer.class, id)).isEqualTo(1));
+        } finally {
+            jdbc.update("DELETE FROM outbox_events WHERE aggregate_type='RiskAnalysisJob' AND aggregate_id IN (SELECT id FROM risk_jobs WHERE crop_area_id=?)", f.cropId());
+            jdbc.update("DELETE FROM risk_jobs WHERE crop_area_id=?", f.cropId());
+            jdbc.update("DELETE FROM agronomic_profiles WHERE crop_area_id=?", f.cropId());
+            cleanup(f);
+        }
+    }
+
+    @Test
     void realPublicationIsConfirmedAndConsumerQueuesTheReading() throws Exception {
         var f = fixture("rabbit-" + UUID.randomUUID() + "@teste.com", "TEMPERATURE");
         try {

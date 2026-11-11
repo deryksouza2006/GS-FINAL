@@ -21,10 +21,17 @@ public record CreateReadingRequest(
         @DecimalMin(value = "0", message = "Bateria deve estar entre 0 e 100")
         @DecimalMax(value = "100", message = "Bateria deve estar entre 0 e 100")
         @Digits(integer = 3, fraction = 3, message = "Bateria deve ter até 3 casas decimais") BigDecimal batteryPercent,
-        Instant measuredAt, ReadingSource source) {
+        Instant measuredAt, ReadingSource source,
+        @DecimalMin("0") @Digits(integer=6,fraction=3) BigDecimal rainfallMillimeters,
+        Instant rainfallIntervalStart) {
+    @AssertTrue(message="Chuva requer intervalo de medição válido") @JsonIgnore
+    public boolean isRainfallIntervalValid() {
+        return rainfallMillimeters==null ? rainfallIntervalStart==null
+                : rainfallIntervalStart!=null && measuredAt!=null && rainfallIntervalStart.isBefore(measuredAt);
+    }
     @AssertTrue(message = "Informe pelo menos uma medição") @JsonIgnore
     public boolean isMeasurementPresent() {
-        return temperatureCelsius != null || airHumidityPercent != null || soilMoisturePercent != null || batteryPercent != null;
+        return temperatureCelsius != null || airHumidityPercent != null || soilMoisturePercent != null || batteryPercent != null || rainfallMillimeters!=null;
     }
     @AssertTrue(message = "A origem deve ser MANUAL nesta etapa") @JsonIgnore
     public boolean isManualSource() {

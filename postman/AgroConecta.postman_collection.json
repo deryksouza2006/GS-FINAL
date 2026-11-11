@@ -1,0 +1,363 @@
+{
+  "info": {
+    "name": "Agro Conecta | Fluxo de demonstração",
+    "description": "Execute em um ambiente de teste com banco e RabbitMQ ativos. O job é assíncrono. Use o ID salvo para acompanhar a conclusão pelo Swagger. Credenciais são geradas em tempo de execução.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Registrar produtor de teste",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/auth/register",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Produtor Demo\",\n  \"email\": \"{{demoEmail}}\",\n  \"password\": \"{{demoPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set(\"demoEmail\", \"demo-\" + pm.variables.replaceIn(\"{{$guid}}\") + \"@example.test\");",
+              "pm.collectionVariables.set(\"demoPassword\", pm.variables.replaceIn(\"{{$guid}}\"));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"token\", pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Criar propriedade",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/farms",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Fazenda Demo\",\n  \"city\": \"Campinas\",\n  \"state\": \"SP\",\n  \"totalArea\": 10,\n  \"areaUnit\": \"HECTARE\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code < 300) pm.collectionVariables.set(\"farmId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Criar cultivo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/crop-areas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"farmId\": {{farmId}},\n  \"name\": \"Talhão Demo\",\n  \"cropType\": \"Milho\",\n  \"areaSize\": 1,\n  \"areaUnit\": \"HECTARE\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code < 300) pm.collectionVariables.set(\"cropId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Configurar perfil",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/crop-areas/{{cropId}}/agronomic-profile",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"soilTexture\": \"argiloso\",\n  \"fieldCapacityPercent\": 32,\n  \"wiltingPointPercent\": 12,\n  \"source\": \"DEMO\",\n  \"demo\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cadastrar sensor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/sensors",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cropAreaId\": {{cropId}},\n  \"name\": \"Estação Demo\",\n  \"deviceCode\": \"demo-{{$guid}}\",\n  \"sensorType\": \"WEATHER_STATION\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code < 300) pm.collectionVariables.set(\"sensorId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gerar chave do sensor",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/api/sensors/{{sensorId}}/device-key"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) pm.collectionVariables.set(\"deviceKey\", pm.response.json().deviceKey);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ingerir leitura autenticada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Device-Key",
+            "value": "{{deviceKey}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/device-readings",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sensorId\": {{sensorId}},\n  \"soilMoisturePercent\": 14,\n  \"temperatureCelsius\": 25,\n  \"airHumidityPercent\": 65\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"Origem DEVICE\", () => pm.expect(pm.response.json().source).to.eql(\"DEVICE\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registrar irrigação",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/crop-areas/{{cropId}}/activities",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"IRRIGATION\",\n  \"performedAt\": \"{{$isoTimestamp}}\",\n  \"quantity\": 30,\n  \"unit\": \"L\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code < 300) pm.collectionVariables.set(\"activityId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Solicitar análise",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/api/crop-areas/{{cropId}}/risk-jobs"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 202\", () => pm.response.to.have.status(202));",
+              "if (pm.response.code < 300) pm.collectionVariables.set(\"jobId\", pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultar job",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/risk-jobs/{{jobId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Job pertence ao cultivo\", () => pm.expect(String(pm.response.json().cropAreaId)).to.eql(String(pm.collectionVariables.get(\"cropId\"))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consultar painel",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/dashboard"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Painel inclui resumo\", () => pm.expect(pm.response.json()).to.have.property(\"cropSummaries\"));",
+              "for (const key of [\"token\", \"deviceKey\", \"demoPassword\"]) pm.collectionVariables.unset(key);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

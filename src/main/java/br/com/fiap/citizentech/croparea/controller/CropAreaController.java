@@ -28,6 +28,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class CropAreaController {
     private final CropAreaService cropAreaService;
 
+    public record ArchiveRequest(@jakarta.validation.constraints.NotNull Boolean archived) { }
+
+    @org.springframework.web.bind.annotation.PatchMapping("/crop-areas/{id}/archive")
+    public CropAreaResponse archive(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+                                    @Valid @RequestBody ArchiveRequest request) {
+        return cropAreaService.archive(jwt.getSubject(), id, request.archived());
+    }
+
     @PostMapping("/crop-areas")
     @ResponseStatus(HttpStatus.CREATED)
     public CropAreaResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CropAreaRequest request) {

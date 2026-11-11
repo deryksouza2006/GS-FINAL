@@ -17,6 +17,20 @@ import org.springframework.web.bind.annotation.*;
 public class SensorReadingController {
     private final SensorReadingService service;
 
+    @PostMapping("/sensors/{sensorId}/device-key")
+    public org.springframework.http.ResponseEntity<java.util.Map<String,String>> rotateKey(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable Long sensorId) {
+        return org.springframework.http.ResponseEntity.ok()
+                .cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(java.util.Map.of("deviceKey", service.rotateDeviceKey(jwt.getSubject(), sensorId)));
+    }
+
+    @PostMapping("/device-readings") @ResponseStatus(HttpStatus.CREATED)
+    public ReadingResponse device(@RequestHeader(name="X-Device-Key", required=false) String key,
+                                  @Valid @RequestBody CreateReadingRequest request) {
+        return service.ingestDevice(key, request);
+    }
+
     @PostMapping("/sensor-readings") @ResponseStatus(HttpStatus.CREATED)
     public ReadingResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CreateReadingRequest request) {
         return service.create(jwt.getSubject(), request);

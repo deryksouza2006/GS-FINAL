@@ -27,6 +27,7 @@ public class JwtService {
         Instant expiresAt = now.plus(properties.expirationMinutes(), ChronoUnit.MINUTES);
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(properties.issuer())
+                .audience(List.of("agroconecta"))
                 .subject(user.getEmail())
                 .issuedAt(now)
                 .expiresAt(expiresAt)

@@ -31,7 +31,11 @@ public class ReadingMessagingConfig {
         DirectExchange deadExchange = new DirectExchange(DLX, true, false);
         Queue queue = QueueBuilder.durable(QUEUE).deadLetterExchange(DLX).deadLetterRoutingKey(DEAD_KEY).build();
         Queue deadQueue = QueueBuilder.durable(DLQ).build();
-        return new Declarables(exchange, deadExchange, queue, deadQueue,
+        Queue riskQueue = QueueBuilder.durable("agroconecta.risk-jobs").deadLetterExchange(DLX).deadLetterRoutingKey("risk.failed").build();
+        Queue riskDead = QueueBuilder.durable("agroconecta.risk-jobs.dlq").build();
+        return new Declarables(exchange, deadExchange, queue, deadQueue, riskQueue, riskDead,
+                BindingBuilder.bind(riskQueue).to(exchange).with("risk.analysis.requested"),
+                BindingBuilder.bind(riskDead).to(deadExchange).with("risk.failed"),
                 BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY),
                 BindingBuilder.bind(deadQueue).to(deadExchange).with(DEAD_KEY));
     }

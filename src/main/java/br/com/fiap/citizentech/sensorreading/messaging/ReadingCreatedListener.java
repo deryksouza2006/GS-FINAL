@@ -14,10 +14,12 @@ import org.springframework.stereotype.Component;
 public class ReadingCreatedListener {
     private final ReadingAnalysisService analysis;
     private final br.com.fiap.citizentech.analysis.service.AgronomicAnalysisService agronomicAnalysis;
+    @org.springframework.beans.factory.annotation.Value("${app.readings.legacy-ai-enabled:false}")
+    private boolean legacyAiEnabled;
 
     @RabbitListener(queues = ReadingMessagingConfig.QUEUE)
     public void onCreated(SensorReadingCreated event) {
         analysis.queue(event);
-        agronomicAnalysis.process(event.readingId());
+        if (legacyAiEnabled) agronomicAnalysis.process(event.readingId());
     }
 }

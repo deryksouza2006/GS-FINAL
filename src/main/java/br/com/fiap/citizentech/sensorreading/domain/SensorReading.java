@@ -28,6 +28,9 @@ public class SensorReading extends BaseEntity {
     private BigDecimal soilMoisturePercent;
     @Column(name = "battery_percent", precision = 6, scale = 3)
     private BigDecimal batteryPercent;
+    @Column(precision=9,scale=3) private BigDecimal rainfallMillimeters;
+    private Instant rainfallIntervalStart;
+    public void rainfall(BigDecimal millimeters, Instant start) { rainfallMillimeters=millimeters; rainfallIntervalStart=start; }
     @Column(name = "measured_at", nullable = false)
     private Instant measuredAt;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
@@ -37,17 +40,29 @@ public class SensorReading extends BaseEntity {
 
     public SensorReading(Sensor sensor, BigDecimal temperatureCelsius, BigDecimal airHumidityPercent,
                          BigDecimal soilMoisturePercent, BigDecimal batteryPercent, Instant measuredAt) {
+        this(sensor, temperatureCelsius, airHumidityPercent, soilMoisturePercent, batteryPercent, measuredAt, ReadingSource.MANUAL);
+    }
+
+    public SensorReading(Sensor sensor, BigDecimal temperatureCelsius, BigDecimal airHumidityPercent,
+                         BigDecimal soilMoisturePercent, BigDecimal batteryPercent, Instant measuredAt, ReadingSource source) {
         this.sensor = sensor;
         this.temperatureCelsius = temperatureCelsius;
         this.airHumidityPercent = airHumidityPercent;
         this.soilMoisturePercent = soilMoisturePercent;
         this.batteryPercent = batteryPercent;
         this.measuredAt = measuredAt == null ? Instant.now() : measuredAt;
-        this.source = ReadingSource.MANUAL;
+        this.source = source;
         this.analysisStatus = ReadingAnalysisStatus.PENDING_PUBLICATION;
     }
 
     public void analyzed() { analysisStatus = ReadingAnalysisStatus.ANALYZED; }
+    public static SensorReading simulated(Sensor sensor, BigDecimal temperature, BigDecimal airHumidity,
+                                          BigDecimal soilMoisture, Instant measuredAt) {
+        var reading=new SensorReading(sensor,temperature,airHumidity,soilMoisture,BigDecimal.valueOf(100),measuredAt);
+        reading.source=ReadingSource.SIMULATED;
+        reading.analysisStatus=ReadingAnalysisStatus.RECORDED;
+        return reading;
+    }
     public void analysisFailed() { analysisStatus = ReadingAnalysisStatus.FAILED; }
     public void retryAnalysis() { analysisStatus = ReadingAnalysisStatus.QUEUED_FOR_ANALYSIS; }
 
