@@ -82,4 +82,12 @@ class JobGuidanceTests {
         assertThrows(BusinessException.class,()->controller.generate(jwt,1L));
         verifyNoInteractions(ai,knowledge);
     }
+    @Test void revocationWhileGeneratingIsNotConvertedIntoSuccessfulFallback() {
+        when(knowledge.retrieve(any())).thenReturn(new RagContext(List.of(),List.of(),true));
+        when(ai.analyze(any(),any())).thenReturn(new AgronomicAdvice(RiskLevel.LOW,"Observação","Verifique",
+                "Conferir sensor",List.of(),List.of(),List.of(),DataQuality.PARTIAL));
+        when(jobs.saveGuidance(anyString(),anyLong(),any())).thenThrow(
+                new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,"Revogado"));
+        assertThrows(BusinessException.class,()->controller.generate(jwt,1L));
+    }
 }
