@@ -33,8 +33,8 @@ public record CreateReadingRequest(
     public boolean isMeasurementPresent() {
         return temperatureCelsius != null || airHumidityPercent != null || soilMoisturePercent != null || batteryPercent != null || rainfallMillimeters!=null;
     }
-    @AssertTrue(message = "A origem deve ser MANUAL nesta etapa") @JsonIgnore
+    @AssertTrue(message = "Origem inválida para recebimento externo") @JsonIgnore
     public boolean isManualSource() {
-        return source == null || source == ReadingSource.MANUAL;
+        return source == null || source == ReadingSource.MANUAL || source == ReadingSource.SIMULATED;
     }
 }

@@ -87,6 +87,7 @@ public class RiskJob {
     @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition="jsonb") private java.util.Map<String,Object> guidance;
     public void captureCropType(String type) { cropType=type; }
     public void guidance(java.util.Map<String,Object> value) { guidance=value; status="COMPLETED"; }
+    public void fallbackGuidance(java.util.Map<String,Object> value) { guidance=value; }
     public void fail() {
         if (!terminal()) {
             status = "FAILED";

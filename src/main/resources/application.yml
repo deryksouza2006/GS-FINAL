@@ -92,6 +92,8 @@ management:
       show-details: when-authorized
 
 app:
+  demo:
+    enabled: ${APP_DEMO_ENABLED:false}
   ai:
     enabled: ${APP_AI_ENABLED:false}
     model: ${AI_CHAT_MODEL:gemini-2.5-flash}

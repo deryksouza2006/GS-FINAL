@@ -48,6 +48,7 @@ public class SensorReadingService {
     @PreAuthorize("permitAll()")
     @Transactional
     public ReadingResponse ingestDevice(String key, CreateReadingRequest request) {
+        requireManualSource(request);
         var sensor = sensors.lockDevice(request.sensorId()).orElse(null);
         if (sensor == null || key == null || key.length() != 43 || sensor.deviceKeyHash() == null
                 || !deviceEncoder.matches(key, sensor.deviceKeyHash())) {
@@ -63,9 +64,24 @@ public class SensorReadingService {
 
     @Transactional
     public ReadingResponse create(String email, CreateReadingRequest request) {
+        requireManualSource(request);
         var sensor = sensors.findOwnedForUpdate(request.sensorId(), producer(email).getId())
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Sensor não encontrado"));
         return recordReading(sensor, sensor.getCropArea().getFarm().getOwner().getId(), request, ReadingSource.MANUAL);
+    }
+
+    @Transactional
+    public ReadingResponse simulate(String email, CreateReadingRequest request) {
+        if (request.source() != ReadingSource.SIMULATED || request.measuredAt() == null)
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Simulação exige source SIMULATED e measuredAt");
+        var sensor = sensors.findOwnedForUpdate(request.sensorId(), producer(email).getId())
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Sensor não encontrado"));
+        return recordReading(sensor, sensor.getCropArea().getFarm().getOwner().getId(), request, ReadingSource.SIMULATED);
+    }
+
+    private void requireManualSource(CreateReadingRequest request) {
+        if (request.source() != null && request.source() != ReadingSource.MANUAL)
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Use a rota de simulação para dados SIMULATED");
     }
 
     private ReadingResponse recordReading(br.com.fiap.citizentech.sensor.domain.Sensor sensor, Long ownerId,
