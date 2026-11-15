@@ -28,6 +28,11 @@ public class GeminiAgronomicAiClient implements AgronomicAiClient {
         var options=GoogleGenAiChatOptions.builder().model(properties.model())
                 .googleSearchRetrieval(false).responseMimeType("application/json")
                 .responseSchema(converter.getJsonSchema());
-        return chat.prompt().system(system).user(data).options(options).call().entity(converter);
+        String content=chat.prompt().system(system).user(data).options(options).call().content();
+        try {
+            return converter.convert(content);
+        } catch(RuntimeException invalid) {
+            throw new InvalidStructuredOutputException();
+        }
     }
 }

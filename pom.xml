@@ -6,12 +6,12 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>4.1.2</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/>
 	</parent>
 	<groupId>br.com.fiap</groupId>
 	<artifactId>citizentech-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>Agro Conecta API</name>
+	<name>AgroConecta API</name>
 	<description>API de apoio inteligente ao pequeno produtor</description>
 	<url/>
 	<licenses>

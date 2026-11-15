@@ -3,7 +3,6 @@ package br.com.fiap.citizentech.water;
 import java.time.*;
 import java.util.*;
 
-/** Demonstration heuristics, not a hardware diagnosis. */
 public final class SensorHealthCalculator {
     public record Sample(Instant time, Double soil, Double temperature, Double humidity) { }
     public static String calculate(List<Sample> samples, Instant now, Duration stale, Duration offline) {

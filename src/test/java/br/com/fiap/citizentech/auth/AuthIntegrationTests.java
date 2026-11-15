@@ -154,11 +154,22 @@ class AuthIntegrationTests {
     @Test
     void disabledUserCannotLogin() throws Exception {
         register(EMAIL, PASSWORD);
-        // Atualização real no banco para testar isEnabled sem adicionar API administrativa.
         var user = users.findByEmailIgnoreCase(EMAIL).orElseThrow();
         org.springframework.test.util.ReflectionTestUtils.setField(user, "active", false);
         users.saveAndFlush(user);
         login(EMAIL, PASSWORD, 401);
+    }
+
+    @Test
+    void meRejectsExistingTokenAfterUserIsDisabled() throws Exception {
+        JsonNode auth = register(EMAIL, PASSWORD);
+        var user = users.findByEmailIgnoreCase(EMAIL).orElseThrow();
+        org.springframework.test.util.ReflectionTestUtils.setField(user, "active", false);
+        users.saveAndFlush(user);
+        mvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + auth.get("token").asString()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Acesso negado"))
+                .andExpect(jsonPath("$.status").value(403));
     }
 
     @Test

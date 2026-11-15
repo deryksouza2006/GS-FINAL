@@ -1,7 +1,6 @@
 package br.com.fiap.citizentech.water;
 import br.com.fiap.citizentech.sensor.service.SensorService;
 import br.com.fiap.citizentech.sensorreading.service.SensorReadingService;
-import br.com.fiap.citizentech.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

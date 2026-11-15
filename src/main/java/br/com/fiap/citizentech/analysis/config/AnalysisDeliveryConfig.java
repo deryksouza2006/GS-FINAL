@@ -21,7 +21,6 @@ public class AnalysisDeliveryConfig {
                     var node=mapper.readTree(message.getBody());
                     if(node.has("readingId")) transactions.exhausted(node.get("readingId").asLong());
                 } catch(RuntimeException ignored) {
-                    // Malformed/unavailable resources still follow the existing dead-letter path.
                 }
             }
             new RejectAndDontRequeueRecoverer().recover(message,new IllegalStateException("Processamento da leitura esgotado"));

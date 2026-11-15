@@ -77,7 +77,6 @@ public class CropAreaService {
         CropArea area = cropAreas.findOwnedForUpdate(id, ownerId).orElseThrow(this::areaNotFound);
         Long oldFarmId = area.getFarm().getId();
         List<Long> ids = oldFarmId.equals(request.farmId()) ? List.of(oldFarmId) : List.of(oldFarmId, request.farmId());
-        // Ordem única para que transferências entre as mesmas propriedades não invertam os bloqueios.
         List<Farm> locked = farms.findOwnedForUpdate(ids, ownerId);
         if (locked.size() != ids.size()) {
             throw farmNotFound();

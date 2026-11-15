@@ -63,9 +63,9 @@ public class AnalysisTransactions {
     @Transactional(propagation=Propagation.REQUIRES_NEW)
     public void complete(long readingId,UUID token,AgronomicAdvice advice,List<RetrievedSource> sources,List<String> limitations) {
         var reading=readings.findForUpdate(readingId);
-        if(reading.isEmpty()) return; // Explicit deletion while the external request was in flight.
+        if(reading.isEmpty()) return;
         var a=analyses.findByReadingId(readingId).orElse(null);
-        if(a==null || !token.equals(a.getProcessingToken())) return; // Expired worker cannot overwrite a newer attempt.
+        if(a==null || !token.equals(a.getProcessingToken())) return;
         a.complete(advice,sources,limitations); reading.get().analyzed(); analyses.flush();
     }
 

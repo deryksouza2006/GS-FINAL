@@ -11,7 +11,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Opt-in only: calls the real embedding and chat providers, and may incur costs. */
 @EnabledIfEnvironmentVariable(named="RUN_GEMINI_MANUAL_TEST",matches="true")
 @EnabledIfEnvironmentVariable(named="GOOGLE_API_KEY",matches=".+")
 @SpringBootTest(properties={"app.ai.enabled=true","app.ai.provider=gemini"})

@@ -50,7 +50,6 @@ public class AgronomicAnalysisService {
             if(pending!=null) pending.cancel(true);
             if(failure instanceof InterruptedException) Thread.currentThread().interrupt();
             boolean terminal=transactions.fail(readingId,token,failure instanceof TimeoutException);
-            // Never propagate provider messages, response bodies, prompts or credentials to AMQP logs.
             if(terminal) throw new AmqpRejectAndDontRequeueException("Análise falhou após tentativas controladas");
             throw new IllegalStateException("Análise indisponível; nova tentativa será realizada");
         }

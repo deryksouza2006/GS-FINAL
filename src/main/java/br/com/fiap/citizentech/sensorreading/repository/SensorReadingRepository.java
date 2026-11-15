@@ -21,6 +21,8 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
         """)
     java.util.List<SensorReading> latestActiveByType(Long cropId);
     boolean existsBySensorId(Long sensorId);
+    long countByIdInAndSensorCropAreaFarmOwnerIdAndSource(java.util.Collection<Long> ids, Long ownerId,
+            br.com.fiap.citizentech.sensorreading.domain.ReadingSource source);
 
     @EntityGraph(attributePaths = {"sensor", "sensor.cropArea", "sensor.cropArea.farm"})
     Page<SensorReading> findAllBySensorCropAreaFarmOwnerId(Long ownerId, Pageable pageable);

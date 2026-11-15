@@ -15,7 +15,6 @@ import java.math.BigDecimal;
 public class CropAreaCapacityService {
     private final CropAreaRepository cropAreas;
 
-    // O chamador mantém a Farm bloqueada até concluir a transação de escrita.
     public void checkAvailable(Farm farm, BigDecimal area, AreaUnit unit, Long excludedId) {
         if (farm.getTotalArea() != null) {
             BigDecimal occupied = cropAreas.sumSquareMeters(farm.getId(), excludedId);

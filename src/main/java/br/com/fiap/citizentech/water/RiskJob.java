@@ -100,7 +100,6 @@ public class RiskJob {
         this.measurements=List.copyOf(measurements);
         if(profile!=null) { profileId=profile.getId(); fieldCapacity=profile.getFieldCapacityPercent();
             wiltingPoint=profile.getWiltingPointPercent(); demo=profile.isDemo(); }
-        // MVP thresholds are demonstration rules, even when the readings are real.
         demo=true;
     }
     public void complete(WaterRiskCalculator.Result result) {

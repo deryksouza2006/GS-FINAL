@@ -41,7 +41,6 @@ public class AnalysisContextService {
                 AnalysisContext.Measurement.from(r,cutoff),latest,types,List.copyOf(limitations));
     }
 
-    // Free text is untrusted data. Redact common contact/credential patterns before sending to a provider.
     private String safe(String value) {
         if(value==null) return null;
         return value.replaceAll("(?i)[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}", "[contato removido]")

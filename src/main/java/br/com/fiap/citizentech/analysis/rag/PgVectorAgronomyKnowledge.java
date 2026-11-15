@@ -13,7 +13,6 @@ public class PgVectorAgronomyKnowledge implements AgronomyKnowledge {
 
     @Override
     public RagContext retrieve(AnalysisContext context) {
-        // Do not use descriptions as instructions or identifiers in the semantic query.
         String query="Cultura: "+context.cropType()+". Manejo de irrigação, sensores, umidade do solo, estresse hídrico. "+
                 "Medições: "+context.receivedReading()+". Dados ausentes: "+context.limitations();
         var docs=store.similaritySearch(SearchRequest.builder().query(query).topK(properties.topK())
@@ -23,12 +22,21 @@ public class PgVectorAgronomyKnowledge implements AgronomyKnowledge {
         var passages=new ArrayList<RagContext.Passage>();
         for(var doc:docs) {
             var m=doc.getMetadata();
-            if(!m.keySet().containsAll(List.of("sourceId","title","institution","url","version"))) continue;
+            if(!List.of("sourceId","title","institution","url","version").stream()
+                    .allMatch(key->m.get(key) instanceof String value && !value.isBlank())) continue;
+            if(!safeUrl((String)m.get("url")) || doc.getText()==null || doc.getText().isBlank()) continue;
             sources.add(new RetrievedSource(m.get("sourceId").toString(),m.get("title").toString(),
                     m.get("institution").toString(),m.get("url").toString(),m.get("version").toString()));
             String content=doc.getText();
             passages.add(new RagContext.Passage(m.get("title").toString(),content.substring(0,Math.min(content.length(),1600))));
         }
         return new RagContext(List.copyOf(passages),List.copyOf(sources),passages.size()>=3);
+    }
+    private boolean safeUrl(String value) {
+        try {
+            var uri=java.net.URI.create(value);
+            return ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))
+                    && uri.getHost()!=null && uri.getUserInfo()==null;
+        } catch(IllegalArgumentException invalid) {return false;}
     }
 }

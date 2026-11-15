@@ -3,7 +3,6 @@ package br.com.fiap.citizentech.water;
 import java.time.*;
 import java.util.*;
 
-/** Demo thresholds are explicit inputs, never agronomic prescriptions. */
 public final class WaterRiskCalculator {
     public enum Level { NORMAL, ATTENTION, CRITICAL, INSUFFICIENT_DATA }
     public record Thresholds(double criticalAvailability, double attentionAvailability,

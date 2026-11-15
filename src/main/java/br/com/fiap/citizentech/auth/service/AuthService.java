@@ -34,7 +34,6 @@ public class AuthService {
         try {
             users.saveAndFlush(user);
         } catch (DataIntegrityViolationException ex) {
-            // A restrição no banco também protege cadastros concorrentes.
             if (ex.getCause() instanceof ConstraintViolationException constraint
                     && ("ux_users_email_lower".equals(constraint.getConstraintName())
                     || "users_email_key".equals(constraint.getConstraintName()))) {
@@ -54,8 +53,12 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public UserResponse me(String email) {
-        return users.findByEmailIgnoreCase(email).map(UserResponse::from)
+        User user = users.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+        if (!user.isEnabled()) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "Acesso negado");
+        }
+        return UserResponse.from(user);
     }
 
     private BusinessException duplicateEmail() {

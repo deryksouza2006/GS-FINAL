@@ -53,7 +53,7 @@ spring:
         log-completion: false
         include-error-logging: false
     retry:
-      max-attempts: 1
+      max-attempts: 0
     google:
       genai:
         api-key: ${GOOGLE_API_KEY:}
@@ -62,7 +62,6 @@ spring:
           model: ${app.ai.model}
           temperature: ${AI_TEMPERATURE:0.2}
           max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:2000}
-          thinking-budget: 0
           google-search-retrieval: false
           response-mime-type: application/json
         embedding:
@@ -70,12 +69,12 @@ spring:
           vertex-ai: false
           text:
             model: ${app.ai.embedding-model}
-            dimensions: 768
+            dimensions: ${AI_EMBEDDING_DIMENSIONS:768}
     vectorstore:
       pgvector:
         initialize-schema: false
         table-name: agronomy_vector_store
-        dimensions: 768
+        dimensions: ${AI_EMBEDDING_DIMENSIONS:768}
         index-type: HNSW
         distance-type: COSINE_DISTANCE
 
@@ -96,13 +95,13 @@ app:
     enabled: ${APP_DEMO_ENABLED:false}
   ai:
     enabled: ${APP_AI_ENABLED:false}
-    model: ${AI_CHAT_MODEL:gemini-2.5-flash}
+    model: ${AI_CHAT_MODEL:gemini-3.5-flash-lite}
     embedding-model: ${AI_EMBEDDING_MODEL:gemini-embedding-001}
     top-k: ${AI_RAG_TOP_K:4}
     similarity-threshold: ${AI_RAG_SIMILARITY_THRESHOLD:0.3}
     stale-after: ${AI_STALE_AFTER:24h}
-    call-timeout: ${AI_CALL_TIMEOUT:45s}
-    processing-timeout: ${AI_PROCESSING_TIMEOUT:2m}
+    call-timeout: ${AI_CALL_TIMEOUT:PT90S}
+    processing-timeout: ${AI_PROCESSING_TIMEOUT:PT5M}
     recovery-interval-ms: ${AI_RECOVERY_INTERVAL_MS:30000}
     max-attempts: ${AI_MAX_ATTEMPTS:3}
     retry-cooldown: ${AI_RETRY_COOLDOWN:60s}

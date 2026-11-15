@@ -54,7 +54,6 @@ public class AgronomyRagLoader implements ApplicationRunner {
             if(existing.contains(checksum)) continue;
             var chunks=new ArrayList<Document>();
             String content=parts[1].trim();
-            // The corpus is deliberately short. Bound each chunk without splitting UTF-16 surrogate pairs.
             for(int offset=0,index=0;offset<content.length();index++) {
                 int end=Math.min(offset+1000,content.length());
                 if(end<content.length() && Character.isHighSurrogate(content.charAt(end-1))) end--;
@@ -62,7 +61,7 @@ public class AgronomyRagLoader implements ApplicationRunner {
                 chunks.add(Document.builder().id(id).text(content.substring(offset,end)).metadata(metadata).build());
                 offset=end;
             }
-            store.add(chunks); // deterministic IDs are upserted by PGVector
+            store.add(chunks);
             var arguments=new ArrayList<Object>(); arguments.add(key);
             chunks.forEach(chunk -> arguments.add(UUID.fromString(chunk.getId())));
             String placeholders=String.join(",",Collections.nCopies(chunks.size(),"?"));

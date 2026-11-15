@@ -69,7 +69,6 @@ public class FarmService {
             farms.delete(farm);
             farms.flush();
         } catch (DataIntegrityViolationException ex) {
-            // A chave estrangeira protege também contra um vínculo criado durante a exclusão.
             if (ex.getCause() instanceof ConstraintViolationException constraint
                     && "crop_areas_farm_id_fkey".equals(constraint.getConstraintName())) {
                 throw linkedCropAreas();

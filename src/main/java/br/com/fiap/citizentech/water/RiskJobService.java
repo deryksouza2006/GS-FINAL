@@ -64,11 +64,37 @@ public class RiskJobService {
     }
     private Double number(java.math.BigDecimal v) { return v==null ? null : v.doubleValue(); }
     @Transactional public RiskJob saveGuidance(String email,Long id,java.util.Map<String,Object> guidance) {
-        Long owner=owner(email);
-        var job=jobs.lock(id).filter(j->j.getOwnerId().equals(owner)).orElseThrow(this::missing);
-        job.guidance(guidance); return job;
+        var job=guidanceForUpdate(email,id);
+        if(hasValidGuidance(job)) return job;
+        job.guidance(authoritativeGuidance(job,guidance,false)); return job;
+    }
+    @Transactional public RiskJob saveFallbackGuidance(String email,Long id,java.util.Map<String,Object> guidance) {
+        var job=guidanceForUpdate(email,id);
+        if(hasValidGuidance(job)) return job;
+        job.fallbackGuidance(authoritativeGuidance(job,guidance,true)); return job;
+    }
+    private RiskJob guidanceForUpdate(String email,Long id) {
+        var job=jobs.lockOwned(id,owner(email)).orElseThrow(this::missing);
+        if(job.getResult()==null) throw new BusinessException(HttpStatus.CONFLICT,"A análise ainda não terminou");
+        return job;
+    }
+    private boolean hasValidGuidance(RiskJob job) {
+        return job.getGuidance()!=null && Boolean.FALSE.equals(job.getGuidance().get("fallback"));
+    }
+    private java.util.Map<String,Object> authoritativeGuidance(RiskJob job,java.util.Map<String,Object> input,boolean fallback) {
+        var output=new java.util.LinkedHashMap<>(input);
+        output.put("fallback",fallback);
+        output.put("riskLevel",job.getResult().riskLevel().name());
+        return output;
     }
     public RiskJob get(String email,Long id) { return jobs.findByIdAndOwnerId(id,owner(email)).orElseThrow(this::missing); }
+    public boolean hasOnlyManualReadings(String email,Long id) {
+        var job=get(email,id);
+        var ids=job.getMeasurements().stream().map(WaterRiskCalculator.Measurement::id).distinct().toList();
+        return !ids.isEmpty() && job.getMeasurements().stream().noneMatch(WaterRiskCalculator.Measurement::simulated)
+                && readings.countByIdInAndSensorCropAreaFarmOwnerIdAndSource(ids,job.getOwnerId(),
+                        br.com.fiap.citizentech.sensorreading.domain.ReadingSource.MANUAL)==ids.size();
+    }
     public RiskJob alert(String email, Long id) {
         var job = get(email, id);
         if (job.getAlertStatus() == null) throw missing();

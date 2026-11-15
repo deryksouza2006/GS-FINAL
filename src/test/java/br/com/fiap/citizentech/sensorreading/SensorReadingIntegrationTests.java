@@ -19,7 +19,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
@@ -70,7 +69,6 @@ class SensorReadingIntegrationTests extends ReadingTestSupport {
         assertThat(payload.toString()).doesNotContain("Produtor", "@teste.com", "Sensor Teste", "Fazenda");
         assertThat(jdbc.queryForObject("SELECT jsonb_typeof(payload) FROM outbox_events WHERE event_id = ?", String.class, event.getEventId()))
                 .isEqualTo("object");
-        // REQUIRES_NEW consulta outra transação: nenhum evento não commitado pode ser publicado.
         assertThat(publisher.publishPending()).isZero();
         verifyNoInteractions(sender);
     }

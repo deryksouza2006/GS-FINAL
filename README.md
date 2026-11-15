@@ -1,4 +1,6 @@
-# Agro Conecta API
+# AgroConecta API
+
+AgroConecta é o nome público definitivo. Identificadores históricos, como o package `br.com.fiap.citizentech`, o artifactId `citizentech-api`, banco, migrations, configurações, filas e endpoints, permanecem por compatibilidade.
 
 Backend Java de monitoramento hídrico e diário agrícola para pequenos produtores.
 O guia dos contratos, do ambiente de demonstração e da operação está em [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
@@ -651,7 +653,105 @@ Referências: [Spring Boot AMQP](https://docs.spring.io/spring-boot/reference/me
 [OAuth2 Resource Server JWT](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
 e [testes MVC no Spring Boot 4](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/webmvc/test/autoconfigure/package-summary.html).
 
-## Análise agronômica com Gemini e RAG
+## Orientação por IA do AgroConecta: RiskJob + guidance
+
+O fluxo oficial do mobile é **RiskJob + guidance**. O Java calcula o risco de forma
+determinística; `result.riskLevel` é a fonte oficial. A IA explica esse resultado e
+nunca substitui a classificação, os indicadores, o alerta ou os snapshots.
+`agronomic_analyses` é um fluxo legado, preservado sem expansão nesta etapa.
+
+Configuração definitiva, com Spring AI 2.0.2 / Google GenAI Developer API:
+
+```dotenv
+APP_AI_ENABLED=false
+GOOGLE_API_KEY=
+AI_CHAT_MODEL=gemini-3.5-flash-lite
+AI_EMBEDDING_MODEL=gemini-embedding-001
+AI_EMBEDDING_DIMENSIONS=768
+AI_CALL_TIMEOUT=PT90S
+AI_PROCESSING_TIMEOUT=PT5M
+```
+
+A chave pertence somente ao ambiente do processo Java. Não use variáveis
+`EXPO_PUBLIC_*` para segredos nem copie a chave para o projeto mobile. O arquivo
+`.env` real não precisa ser alterado; carregue as variáveis pelo mecanismo seguro
+do ambiente. Sem chave, `APP_AI_ENABLED=false` permite iniciar e testar a API.
+Com IA habilitada, uma chave é obrigatória. O modelo de chat pode ser substituído
+por variável de ambiente. A configuração usa `spring.ai.google.genai.chat` e
+`spring.ai.google.genai.embedding.text`, conforme o Spring AI 2.0.2, mantendo
+temperatura 0,2, JSON estruturado validado e Google Search desativado.
+O antigo `thinking-budget=0` foi removido: a família Gemini 3 usa níveis de
+thinking, e o Flash-Lite 3.5 já adota o nível minimal por padrão. Ao substituir
+o modelo, confira as opções compatíveis na [documentação do provedor](https://ai.google.dev/gemini-api/docs/thinking).
+
+`processingTimeout` deve ser maior que `callTimeout`; a tentativa de guidance tem
+deadline de 90 s por padrão, menor que o timeout exclusivo de **180 s** do mobile.
+Não há retry automático de guidance. A camada de transporte do provedor também
+deve respeitar tentativa única. Novas tentativas são ações manuais.
+
+### Persistência e concorrência
+
+- `POST /api/risk-jobs/{id}/guidance`, **sem body**, retorna o RiskJob com guidance.
+- `GET /api/risk-jobs/{id}` devolve a orientação persistida no mesmo job.
+- Guidance válida tem `fallback=false`, summary, recommendation,
+  recommendedActions, signals, warnings, sources, model, promptVersion,
+  generatedAt e riskLevel copiado do resultado determinístico. O job fica COMPLETED.
+- Fallback tem `fallback=true`, reason, summary, recommendation,
+  recommendedActions, signals, warnings, sources=[], generatedAt e o mesmo riskLevel.
+  Continua COMPLETED_WITHOUT_AI; não é apresentado como geração válida.
+- Ambos são gravados na coluna JSONB `risk_jobs.guidance`, por operação de serviço
+  transacional com lock pessimista restrito ao proprietário ativo. Não há nova migration.
+- Um fallback persistido pode ser substituído numa tentativa manual posterior.
+  Guidance válida é devolvida imediatamente sem outra chamada ao Gemini.
+  Uma resposta tardia de falha não sobrescreve sucesso concorrente.
+- As gravações preservam result, measurements, thresholds, rainfall e os estados
+  administrativos do alerta. O serviço fixa o riskLevel pelo resultado Java sob lock.
+
+Os motivos de contingência são PROVIDER_UNAVAILABLE, CALL_TIMEOUT,
+NO_RELEVANT_SOURCES, INVALID_STRUCTURED_OUTPUT e INSUFFICIENT_CONTEXT.
+Falhas de Gemini/PGVector mantêm o risco disponível e persistem uma explicação de
+contingência segura. Stack traces, prompts e detalhes do provedor não compõem a resposta.
+
+### RAG existente e segurança
+
+O armazenamento é **agronomy_vector_store**, `vector(768)`, com índice HNSW/cosseno.
+Permanecem os quatro documentos institucionais de `rag/agronomy/`, seus IDs
+determinísticos e checksums. Não migrar para gemini-embedding-2 nem recriar o índice.
+Modelo de embedding, dimensão e checksum inalterados fazem o carregador pular a
+fonte sem chamar embeddings. Uma consulta RAG nova usa uma chamada de embedding
+de consulta, distinta de reingestão de documentos.
+
+Somente trechos atribuídos e fontes HTTP(S) válidas são aceitos. O modelo recebe
+as passagens no JSON de dados não confiáveis, separado do prompt de sistema;
+instruções encontradas nos documentos não têm autoridade. O contexto usa o snapshot
+do job do proprietário autenticado e tipos/datas de suas atividades, sem descrições
+livres do diário ou dados de outro produtor. Avisos distinguem parâmetros
+demonstrativos e leituras simuladas. A orientação não substitui avaliação agronômica.
+
+### Teste manual real controlado
+
+1. Execute os testes locais com Java 21 e uma vez `./mvnw clean package`, sem chave
+   e sem habilitar o teste externo opt-in do legado.
+2. Disponibilize GOOGLE_API_KEY somente no ambiente Java por mecanismo local seguro;
+   use os valores definitivos acima com APP_AI_ENABLED=true. Reinicie somente a API,
+   preservando PostgreSQL, RabbitMQ, os quatro vetores e os dados da auditoria.
+3. Confirme `/actuator/health`. Faça uma única geração diagnóstica curta e estruturada
+   no gemini-3.5-flash-lite. Registre apenas HTTP, modelo e validade do JSON, sem chave
+   ou resposta bruta de erro. Se falhar, pare; não tente guidance para forçar sucesso.
+4. Se funcionar, autentique a conta de auditoria sem registrar senha/JWT. Confirme
+   que o job crítico #11 pertence a ela e continua CRITICAL com alerta OPEN.
+5. Faça exatamente um POST sem body em `/api/risk-jobs/11/guidance`, seguido de GET
+   no mesmo ID. Compare guidance e todos os snapshots/estado do alerta. Não crie job.
+6. Orçamento: no máximo duas gerações de chat (diagnóstica + guidance) e uma chamada
+   de embedding de consulta. Nenhuma reingestão, retry automático, DELETE ou commit.
+
+A camada gratuita está sujeita às cotas de RPM/TPM/RPD do projeto e à disponibilidade
+dos modelos; 429/RESOURCE_EXHAUSTED não deve gerar repetição automática. Não há garantia
+de sucesso ou disponibilidade. Confira os limites atuais no
+[Google AI Studio](https://ai.google.dev/gemini-api/docs/rate-limits).
+Modelo: [Gemini 3.5 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite).
+
+## Fluxo legado de análises por leitura (preservado)
 
 Este módulo produz uma análise de cada leitura para apoiar decisões de manejo do pequeno
 produtor. Não é um chat. A recomendação apoia, mas **não substitui um engenheiro agrônomo**.
@@ -661,7 +761,7 @@ O BOM oficial do Spring AI **2.0.2**, compatível com Spring Boot 4.1.x, gerenci
 `spring-ai-starter-model-google-genai`,
 `spring-ai-starter-model-google-genai-embedding` e
 `spring-ai-starter-vector-store-pgvector`. Não há dependência direta adicionada do SDK Google.
-A conversa usa `gemini-2.5-flash`, temperatura 0.2, no máximo 2.000 tokens de saída,
+A configuração compartilhada usa `gemini-3.5-flash-lite`, temperatura 0.2, no máximo 2.000 tokens de saída,
 JSON e conversão estruturada para `AgronomicAdvice`. Google Search permanece desativado.
 
 O embedding é **gemini-embedding-001**, reduzido a **768 dimensões**, conforme a escolha
@@ -748,8 +848,8 @@ Crie uma chave no [Google AI Studio](https://aistudio.google.com/apikey), seguin
 Verifique acesso aos modelos, limites de uso e cobrança da conta. Guarde a chave
 somente no ambiente local/gerenciador de segredos. Não a coloque no README ou no Git.
 
-O `.env.example` contém somente o campo vazio `GOOGLE_API_KEY=` e
-`APP_AI_ENABLED=false` para esta integração, além das variáveis de infraestrutura
+O `.env.example` contém o campo vazio `GOOGLE_API_KEY=`, os modelos/timeouts acima e
+`APP_AI_ENABLED=false`, além das variáveis de infraestrutura
 já existentes. O Compose não exporta essas variáveis para o Java.
 
 ```powershell
@@ -775,11 +875,12 @@ estava desligada precisam de retry pela API depois da habilitação.
 | --- | --- |
 | `app.ai.enabled` / `APP_AI_ENABLED` | false |
 | `GOOGLE_API_KEY` | vazio, obrigatório somente com IA real habilitada |
-| `AI_CHAT_MODEL` / `AI_EMBEDDING_MODEL` | gemini-2.5-flash / gemini-embedding-001 |
+| `AI_CHAT_MODEL` / `AI_EMBEDDING_MODEL` | gemini-3.5-flash-lite / gemini-embedding-001 |
+| `AI_EMBEDDING_DIMENSIONS` | 768; índice existente preservado |
 | `AI_TEMPERATURE` / `AI_MAX_OUTPUT_TOKENS` | 0.2 / 2000 |
 | `AI_RAG_TOP_K` / `AI_RAG_SIMILARITY_THRESHOLD` | 4 (entre 3 e 5) / 0.3 |
 | `AI_STALE_AFTER` | 24h |
-| `AI_CALL_TIMEOUT` / `AI_PROCESSING_TIMEOUT` | 45s / 2m; reserva deve durar mais que a chamada |
+| `AI_CALL_TIMEOUT` / `AI_PROCESSING_TIMEOUT` | PT90S / PT5M; reserva deve durar mais que a chamada |
 | `AI_MAX_ATTEMPTS` | 3 por ciclo de processamento; retries Rabbit também são limitados |
 | `AI_RECOVERY_INTERVAL_MS` | 30000, recuperação de reservas expiradas junto ao scheduler da outbox |
 | `AI_RETRY_COOLDOWN` / `AI_MAX_MANUAL_RETRIES` | 60s / 3 por leitura |

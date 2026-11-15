@@ -9,7 +9,7 @@ import java.util.*;
 @Configuration
 public class ApiDocumentationConfig {
     @Bean OpenAPI agroConectaApi() {
-        return new OpenAPI().info(new Info().title("Agro Conecta API").version("1.0"))
+        return new OpenAPI().info(new Info().title("AgroConecta API").version("1.0"))
             .components(new Components().addSecuritySchemes("bearerAuth",new SecurityScheme()
                 .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")))
             .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));

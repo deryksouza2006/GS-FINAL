@@ -96,7 +96,6 @@ public class SensorService {
         try {
             return SensorResponse.from(sensors.saveAndFlush(sensor));
         } catch (DataIntegrityViolationException ex) {
-            // O índice único também protege requisições concorrentes que passaram pela consulta prévia.
             if (ex.getCause() instanceof ConstraintViolationException constraint
                     && "ux_sensors_device_code_upper".equals(constraint.getConstraintName())) {
                 throw duplicateCode();

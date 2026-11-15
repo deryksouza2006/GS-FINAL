@@ -23,7 +23,7 @@ class OutboxUnitTests {
     void publisherRecordsConfirmationAndKeepsFailureHistoryWithBoundedRetries() {
         var repo = mock(OutboxRepository.class);
         var sender = mock(OutboxEventSender.class);
-        var publisher = new OutboxPublisher(repo, sender, properties);
+        var publisher = new OutboxPublisher(repo, sender, properties, mock(org.springframework.jdbc.core.JdbcTemplate.class));
         var success = event();
         when(repo.lockPending(10)).thenReturn(List.of(success));
         assertThat(publisher.publishPending()).isEqualTo(1);

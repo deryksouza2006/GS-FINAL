@@ -19,4 +19,7 @@ public interface RiskJobRepository extends JpaRepository<RiskJob,Long> {
     Page<RiskJob> findAllByOwnerIdAndAlertStatusIn(Long owner, java.util.Collection<String> states, Pageable pageable);
     @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select j from RiskJob j where j.id=:id")
     Optional<RiskJob> lock(Long id);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select j from RiskJob j where j.id=:id and j.ownerId=:ownerId")
+    Optional<RiskJob> lockOwned(Long id,Long ownerId);
 }

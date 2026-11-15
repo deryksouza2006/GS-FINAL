@@ -49,7 +49,6 @@ public class SensorSimulationController {
                     type==br.com.fiap.citizentech.sensor.domain.SensorType.TEMPERATURE || type==br.com.fiap.citizentech.sensor.domain.SensorType.WEATHER_STATION ? BigDecimal.valueOf(25) : null,
                     type==br.com.fiap.citizentech.sensor.domain.SensorType.HUMIDITY || type==br.com.fiap.citizentech.sensor.domain.SensorType.WEATHER_STATION ? BigDecimal.valueOf(65) : null,
                     type==br.com.fiap.citizentech.sensor.domain.SensorType.SOIL_MOISTURE || type==br.com.fiap.citizentech.sensor.domain.SensorType.WEATHER_STATION ? BigDecimal.valueOf(soil) : null,time);
-            // These readings await an explicit risk-job request, rather than legacy automatic AI analysis.
             return ReadingResponse.from(readings.saveAndFlush(r));
         }).toList();
     }

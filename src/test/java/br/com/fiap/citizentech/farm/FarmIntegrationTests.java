@@ -162,7 +162,6 @@ class FarmIntegrationTests {
                     .andExpect(jsonPath("$.status").value(403));
         }
         send("GET", "/api/farms", token, null).andExpect(status().isForbidden());
-        // O token antigo ainda contém PRODUCER, mas a regra também consulta o banco.
         send("GET", "/api/farms", producerToken, null).andExpect(status().isForbidden());
     }
 

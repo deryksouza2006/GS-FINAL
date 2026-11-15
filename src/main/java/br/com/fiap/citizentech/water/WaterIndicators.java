@@ -3,7 +3,6 @@ package br.com.fiap.citizentech.water;
 import java.time.Duration;
 import java.time.Instant;
 
-/** Pure calculations. Percentages must use the same calibrated volumetric basis. */
 public final class WaterIndicators {
     private WaterIndicators() { }
 
@@ -17,7 +16,6 @@ public final class WaterIndicators {
             throw new IllegalArgumentException("Capacidade de campo deve superar o ponto de murcha");
         }
         double raw = (moisture - wiltingPoint) / (fieldCapacity - wiltingPoint) * 100;
-        // Above field capacity does not, by itself, establish soil saturation.
         return new Availability(raw, Math.max(0, Math.min(100, raw)));
     }
 
