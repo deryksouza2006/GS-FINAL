@@ -5,6 +5,34 @@ AgroConecta é o nome público definitivo. Identificadores históricos, como o p
 Backend Java de monitoramento hídrico e diário agrícola para pequenos produtores.
 O guia dos contratos, do ambiente de demonstração e da operação está em [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
+## Deploy de demonstração
+
+Links públicos verificados em 17/11/2026:
+
+- API Java: [https://agroconecta-api-ms1a.onrender.com](https://agroconecta-api-ms1a.onrender.com)
+- Swagger UI: [https://agroconecta-api-ms1a.onrender.com/swagger-ui/index.html](https://agroconecta-api-ms1a.onrender.com/swagger-ui/index.html)
+- OpenAPI JSON: [https://agroconecta-api-ms1a.onrender.com/v3/api-docs](https://agroconecta-api-ms1a.onrender.com/v3/api-docs)
+- Health check: [https://agroconecta-api-ms1a.onrender.com/actuator/health](https://agroconecta-api-ms1a.onrender.com/actuator/health)
+
+Infraestrutura vinculada à API:
+
+- PostgreSQL 16 no Render: privado, acessível somente pelos serviços autorizados.
+- RabbitMQ no CloudAMQP: conexão TLS privada; credenciais não são publicadas.
+- Gemini Developer API: chave configurada como segredo no ambiente do Render.
+- Flyway: 19 migrations aplicadas no banco de produção.
+- RAG/PGVector: 4 trechos institucionais carregados no deploy validado.
+
+Painéis operacionais, protegidos pelo login do proprietário:
+
+- [Serviço Java no Render](https://dashboard.render.com/web/srv-dbtsnt56e07s73b3um8g)
+- [PostgreSQL no Render](https://dashboard.render.com/d/dpg-dbtsni56e07s73b3tkfg-a)
+- [RabbitMQ no CloudAMQP](https://api.cloudamqp.com/console/6610511c-7d27-4a36-844b-d400dc09937a/details)
+
+O serviço gratuito pode levar alguns segundos para responder após ficar inativo. O banco
+PostgreSQL gratuito é temporário e está programado para expirar em **17/12/2026**;
+para manter o ambiente depois dessa data, é necessário migrar para um plano persistente
+ou criar outro banco e executar novamente as migrations.
+
 ## Tecnologias iniciais
 
 - Java 21
