@@ -27,10 +27,7 @@ armazenado no PostgreSQL com PGVector.
 | OpenAPI | [Contrato JSON](https://agroconecta-api-ms1a.onrender.com/v3/api-docs) | Público |
 | Health check | [Estado da aplicação](https://agroconecta-api-ms1a.onrender.com/actuator/health) | Público |
 | Coleção Postman | [AgroConecta.postman_collection.json](postman/AgroConecta.postman_collection.json) | Neste repositório |
-| Repositório IoT/IA | [agro-conecta-iot-ai](https://github.com/LucasViana130/agro-conecta-iot-ai) | Público |
 | Aplicativo mobile | [AgroSolution](https://github.com/deryksouza2006/AgroSolution) | Público |
-| Estado da implementação | [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | Neste repositório |
-| Contrato IoT/IA | [IOT_AI_INTEGRATION.md](docs/IOT_AI_INTEGRATION.md) | Neste repositório |
 
 Os painéis do [serviço Java](https://dashboard.render.com/web/srv-dbtsnt56e07s73b3um8g),
 do [PostgreSQL](https://dashboard.render.com/d/dpg-dbtsni56e07s73b3tkfg-a) e do
@@ -294,10 +291,7 @@ A proposta se relaciona ao **ODS 2**, pelo acesso de pequenos produtores a infor
 
 **Evidências existentes:** a suíte final documentada contém **182 testes: 181 aprovados, um teste manual ignorado e zero falhas**. A integração real **Gemini + RAG foi validada anteriormente**, com orientação válida persistida e risco preservado. O relatório histórico de integração registra a contagem de sua própria etapa; o total atual está em [Testes e empacotamento](#testes-e-empacotamento). Nenhum teste ou nova chamada ao provedor foi executado na resolução deste conflito.
 
-- [Arquitetura da IA](docs/disruptive-architectures/ARQUITETURA_IA.md): componentes, corpus, preparação, prompt, validação, persistência e segurança.
-- [Evidências de avaliação](docs/disruptive-architectures/EVIDENCIAS_AVALIACAO.md): cenários, resultados, limitações, requisitos e rubricas da entrega e da apresentação.
-- [Auditoria final de código](docs/auditoria-final-codigo.md): resultados da suíte e controles verificados.
-- [Integração real de IA](docs/integracao-ia-final.md): validação controlada do Gemini, RAG e persistência da guidance.
+A arquitetura, as fontes, os cenários de avaliação e as evidências da auditoria e da integração real estão consolidados no documento de entrega indicado na tabela de links. O GS-FINAL é o repositório oficial de IoT/IA; o AgroSolution é a interface complementar.
 
 A identificação acadêmica dos integrantes, com RMs, permanece pendente de confirmação. Nenhum nome ou RM foi inferido e o arquivo de identificação não foi criado. As instruções atuais de execução, configuração, deploy e contratos da API permanecem nas respectivas seções técnicas deste README.
 
@@ -332,8 +326,13 @@ A identificação acadêmica dos integrantes, com RMs, permanece pendente de con
    ./mvnw spring-boot:run
    ```
 
-No PowerShell, use `./mvnw.cmd spring-boot:run` e configure as variáveis com
-`$env:NOME_DA_VARIAVEL = 'valor'`.
+Os comandos Maven deste README usam `./mvnw` no Linux e macOS.
+No Windows, execute os comandos pelo Git Bash ou WSL.
+No PowerShell, configure variáveis com `$env:NOME_DA_VARIAVEL = 'valor'`.
+Para usar esse ambiente no Git Bash, abra-o a partir do mesmo PowerShell com
+`& "$env:ProgramFiles\Git\bin\bash.exe"` (instalação padrão do Git for Windows).
+Esse shell herda as variáveis e o diretório atual; execute nele os comandos Maven.
+No WSL, configure as variáveis e o Java no próprio ambiente Linux.
 
 ## Serviços locais
 
@@ -861,7 +860,14 @@ Get-Content .env | ForEach-Object {
   }
 }
 docker compose up -d
-./mvnw.cmd spring-boot:run
+# Abra o Git Bash herdando as variáveis deste PowerShell (instalação padrão).
+& "$env:ProgramFiles\Git\bin\bash.exe"
+```
+
+No Git Bash aberto acima, inicie a API:
+
+```bash
+./mvnw spring-boot:run
 ```
 
 Painel: `http://localhost:15672`. AMQP: `localhost:5672`. Use `RABBITMQ_USERNAME`
@@ -911,7 +917,7 @@ Com Java 21 e Docker em execução:
 ./mvnw clean verify
 ```
 
-No PowerShell, use `./mvnw.cmd clean verify`. O mesmo comando compila, executa toda a suíte,
+No Windows, execute o comando pelo Git Bash ou WSL. Ele compila, executa toda a suíte,
 valida o pacote e gera `target/citizentech-api-0.0.1-SNAPSHOT.jar`.
 
 Última execução completa, em 17/11/2026:
@@ -946,11 +952,11 @@ RabbitMQ descartável e comprova publicação com confirms, consumo e retry/DLQ 
 
 Durante o desenvolvimento, prefira testes direcionados, por exemplo:
 
-```powershell
-./mvnw.cmd '-Dtest=CropAreaIntegrationTests' test
+```bash
+./mvnw '-Dtest=CropAreaIntegrationTests' test
 ```
 
-Para a validação final, `./mvnw.cmd clean verify` já executa toda a suíte e gera o JAR;
+Para a validação final, `./mvnw clean verify` já executa toda a suíte e gera o JAR;
 não é necessário rodar `test` ou `package` separadamente antes dele.
 
 Referências: [Spring Boot AMQP](https://docs.spring.io/spring-boot/reference/messaging/amqp.html),
@@ -1169,7 +1175,14 @@ docker compose up -d
 $secret = Read-Host 'GOOGLE_API_KEY' -AsSecureString
 $env:GOOGLE_API_KEY = [System.Net.NetworkCredential]::new('', $secret).Password
 $env:APP_AI_ENABLED = 'true'
-./mvnw.cmd spring-boot:run
+# Abra o Git Bash herdando as variáveis deste PowerShell (instalação padrão).
+& "$env:ProgramFiles\Git\bin\bash.exe"
+```
+
+No Git Bash aberto acima, inicie a API:
+
+```bash
+./mvnw spring-boot:run
 ```
 
 A API continua em `http://localhost:8080` e o painel RabbitMQ em `http://localhost:15672`.
@@ -1252,13 +1265,25 @@ O teste real é opcional, desativado por padrão e pode consumir cota/cobrança:
 ```powershell
 # Configure GOOGLE_API_KEY no processo conforme explicado acima.
 $env:RUN_GEMINI_MANUAL_TEST = 'true'
-./mvnw.cmd '-Dtest=GeminiManualTests' test
+# Abra o Git Bash herdando as variáveis deste PowerShell (instalação padrão).
+& "$env:ProgramFiles\Git\bin\bash.exe"
+```
+
+No Git Bash aberto acima, execute:
+
+```bash
+./mvnw '-Dtest=GeminiManualTests' test
+```
+
+Depois, use `exit` para voltar ao PowerShell e remova a variável de controle:
+
+```powershell
 Remove-Item Env:RUN_GEMINI_MANUAL_TEST
 ```
 
 Ele usa PostgreSQL descartável e chama embeddings/chat reais, sem RabbitMQ externo.
 Não é executado na build comum. Para a validação completa sem chave:
-`./mvnw.cmd clean verify`.
+`./mvnw clean verify`.
 
 Referências: [compatibilidade Spring AI](https://docs.spring.io/spring-ai/reference/getting-started.html),
 [Google GenAI Chat](https://docs.spring.io/spring-ai/reference/api/chat/google-genai-chat.html),
