@@ -38,5 +38,5 @@ databases:
     user: agroconecta
     plan: free
     region: virginia
-    postgresMajorVersion: "18"
+    postgresMajorVersion: "16"
     ipAllowList: []
