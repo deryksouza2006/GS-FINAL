@@ -19,5 +19,6 @@ COPY --from=build /workspace/target/citizentech-api-0.0.1-SNAPSHOT.jar app.jar
 USER agroconecta
 EXPOSE 10000
 
-# Render fornece DATABASE_URL como postgresql://; o driver JDBC requer jdbc:postgresql://.
-ENTRYPOINT ["sh", "-c", "if [ -n \"${DATABASE_URL:-}\" ]; then export DB_URL=\"jdbc:${DATABASE_URL}\"; fi; exec java -jar /app/app.jar"]
+# Monta a URL JDBC sem incluir credenciais nela. O Render injeta cada campo
+# do banco separadamente e o Spring usa usuario e senha em propriedades próprias.
+ENTRYPOINT ["sh", "-c", "if [ -n \"${DB_HOST:-}\" ]; then export DB_URL=\"jdbc:postgresql://${DB_HOST}:${DB_PORT:-5432}/${DB_NAME}\"; fi; exec java -jar /app/app.jar"]
