@@ -267,6 +267,40 @@ não altera o esquema por conta própria.
 O Swagger contém os corpos, parâmetros e respostas de cada operação. As seções seguintes
 documentam as regras e exemplos dos contratos mais importantes.
 
+## Entrega — Disruptive Architectures: IoT, IoB & Generative IA
+
+Na Global Solution 2026/2, o AgroConecta aborda a dificuldade de pequenos produtores rurais em interpretar leituras agrícolas e decidir sobre manejo hídrico. Sua contribuição para CitizenTech é aproximar dados, alertas e conhecimento técnico da decisão cotidiana, com responsabilidade humana pelo manejo.
+
+O aprofundamento escolhido é **RAG básico com PostgreSQL e PGVector**, integrado ao Spring AI. A geração usa **`gemini-3.5-flash-lite`**; os embeddings usam **`gemini-embedding-001`, com 768 dimensões**. O corpus local contém quatro sínteses atribuídas a três referências Embrapa e uma FAO. RAG fornece evidências e fontes consultáveis; PGVector aproveita a infraestrutura PostgreSQL existente. A escolha do Gemini atende à orientação em português e à saída estruturada já integradas, sem alegação de superioridade baseada em benchmark.
+
+O **Java calcula deterministicamente o risco hídrico**. A orientação generativa explica esse resultado por meio de resumo, sinais, recomendações, ações, avisos e fontes, sem alterar `result.riskLevel`, indicadores, snapshots ou alertas. O usuário solicita guidance após o cálculo; uma orientação válida é persistida e reutilizada sem nova geração. Falhas produzem **fallback explicitamente identificado**, preservando o risco e permitindo tentativa manual posterior, sem retry automático de guidance.
+
+```mermaid
+flowchart LR
+    A["Leituras manuais ou simuladas"] --> B["Cálculo determinístico Java"]
+    B --> C["RiskJob / alerta"]
+    C -->|Pedido de guidance| D["Busca RAG no PGVector"]
+    D --> E["Gemini com evidências Embrapa / FAO"]
+    E --> F["Validação estruturada"]
+    F --> G["Persistência da orientação"]
+    G --> H["Aplicativo mobile"]
+```
+
+**Segurança e limitações.** Credenciais do provedor pertencem somente ao ambiente seguro do backend, nunca ao aplicativo, ao README ou a capturas da apresentação. O acesso ao job e ao contexto respeita o produtor autenticado. A IA pode gerar afirmações inadequadas mesmo com JSON válido; corpus reduzido, parâmetros demonstrativos, qualidade das leituras, rede e cotas limitam a orientação. O sistema apoia a decisão e não substitui avaliação agronômica, validação em campo ou assistência profissional. Não há acionamento automático de irrigação nem impacto produtivo ou economia de água comprovados.
+
+Os sensores são registros cadastrados no sistema, com **leituras manuais ou simuladas**. Não há ESP32 físico, MQTT, dados de satélite ou sensores físicos validados em campo nesta entrega. **RabbitMQ é mensageria interna**; o contrato de ingestão de leituras externas não comprova integração física.
+
+A proposta se relaciona ao **ODS 2**, pelo acesso de pequenos produtores a informação para agricultura sustentável; ao **ODS 9**, pela integração de infraestrutura digital e IA; e ao **ODS 13**, pelo apoio à compreensão das condições hídricas e à adaptação. Essas relações expressam objetivos da solução, sem representar impacto já medido.
+
+**Evidências existentes:** a suíte final documentada contém **182 testes: 181 aprovados, um teste manual ignorado e zero falhas**. A integração real **Gemini + RAG foi validada anteriormente**, com orientação válida persistida e risco preservado. O relatório histórico de integração registra a contagem de sua própria etapa; o total atual está em [Testes e empacotamento](#testes-e-empacotamento). Nenhum teste ou nova chamada ao provedor foi executado na resolução deste conflito.
+
+- [Arquitetura da IA](docs/disruptive-architectures/ARQUITETURA_IA.md): componentes, corpus, preparação, prompt, validação, persistência e segurança.
+- [Evidências de avaliação](docs/disruptive-architectures/EVIDENCIAS_AVALIACAO.md): cenários, resultados, limitações, requisitos e rubricas da entrega e da apresentação.
+- [Auditoria final de código](docs/auditoria-final-codigo.md): resultados da suíte e controles verificados.
+- [Integração real de IA](docs/integracao-ia-final.md): validação controlada do Gemini, RAG e persistência da guidance.
+
+A identificação acadêmica dos integrantes, com RMs, permanece pendente de confirmação. Nenhum nome ou RM foi inferido e o arquivo de identificação não foi criado. As instruções atuais de execução, configuração, deploy e contratos da API permanecem nas respectivas seções técnicas deste README.
+
 ## Tecnologias
 
 - Java 21
