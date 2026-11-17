@@ -1,39 +1,273 @@
 # AgroConecta API
 
-AgroConecta é o nome público definitivo. Identificadores históricos, como o package `br.com.fiap.citizentech`, o artifactId `citizentech-api`, banco, migrations, configurações, filas e endpoints, permanecem por compatibilidade.
+Backend Java do AgroConecta, uma solução de monitoramento hídrico e registro de atividades
+agrícolas voltada a pequenos produtores. A API concentra autenticação, propriedades,
+cultivos, sensores, leituras, histórico de campo, alertas e análise de risco. O processamento
+assíncrono usa RabbitMQ; a orientação contextual combina Spring AI, Gemini e um acervo RAG
+armazenado no PostgreSQL com PGVector.
 
-Backend Java de monitoramento hídrico e diário agrícola para pequenos produtores.
-O guia dos contratos, do ambiente de demonstração e da operação está em [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
+> **Compatibilidade:** AgroConecta é o nome público do projeto. O package
+> `br.com.fiap.citizentech`, o artifactId `citizentech-api` e alguns nomes internos foram
+> preservados para não quebrar o código e os contratos já existentes.
 
-## Deploy de demonstração
+## Integrantes
 
-Links públicos verificados em 17/11/2026:
+| Nome | GitHub |
+| --- | --- |
+| Lucas Viana | [@LucasViana130](https://github.com/LucasViana130) |
+| Deryk Souza | [@deryksouza2006](https://github.com/deryksouza2006) |
 
-- API Java: [https://agroconecta-api-ms1a.onrender.com](https://agroconecta-api-ms1a.onrender.com)
-- Swagger UI: [https://agroconecta-api-ms1a.onrender.com/swagger-ui/index.html](https://agroconecta-api-ms1a.onrender.com/swagger-ui/index.html)
-- OpenAPI JSON: [https://agroconecta-api-ms1a.onrender.com/v3/api-docs](https://agroconecta-api-ms1a.onrender.com/v3/api-docs)
-- Health check: [https://agroconecta-api-ms1a.onrender.com/actuator/health](https://agroconecta-api-ms1a.onrender.com/actuator/health)
+## Links da entrega
 
-Infraestrutura vinculada à API:
+| Recurso | Link | Acesso |
+| --- | --- | --- |
+| Repositório Java | [GS-FINAL](https://github.com/deryksouza2006/GS-FINAL) | Público |
+| API em produção | [agroconecta-api-ms1a.onrender.com](https://agroconecta-api-ms1a.onrender.com) | Público |
+| Swagger UI | [Documentação interativa](https://agroconecta-api-ms1a.onrender.com/swagger-ui/index.html) | Público |
+| OpenAPI | [Contrato JSON](https://agroconecta-api-ms1a.onrender.com/v3/api-docs) | Público |
+| Health check | [Estado da aplicação](https://agroconecta-api-ms1a.onrender.com/actuator/health) | Público |
+| Coleção Postman | [AgroConecta.postman_collection.json](postman/AgroConecta.postman_collection.json) | Neste repositório |
+| Repositório IoT/IA | [agro-conecta-iot-ai](https://github.com/LucasViana130/agro-conecta-iot-ai) | Público |
+| Aplicativo mobile | [AgroSolution](https://github.com/deryksouza2006/AgroSolution) | Público |
+| Estado da implementação | [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | Neste repositório |
+| Contrato IoT/IA | [IOT_AI_INTEGRATION.md](docs/IOT_AI_INTEGRATION.md) | Neste repositório |
 
-- PostgreSQL 16 no Render: privado, acessível somente pelos serviços autorizados.
-- RabbitMQ no CloudAMQP: conexão TLS privada; credenciais não são publicadas.
-- Gemini Developer API: chave configurada como segredo no ambiente do Render.
-- Flyway: 19 migrations aplicadas no banco de produção.
-- RAG/PGVector: 4 trechos institucionais carregados no deploy validado.
+Os painéis do [serviço Java](https://dashboard.render.com/web/srv-dbtsnt56e07s73b3um8g),
+do [PostgreSQL](https://dashboard.render.com/d/dpg-dbtsni56e07s73b3tkfg-a) e do
+[RabbitMQ](https://api.cloudamqp.com/console/6610511c-7d27-4a36-844b-d400dc09937a/details)
+exigem acesso às contas da equipe e não expõem credenciais.
 
-Painéis operacionais, protegidos pelo login do proprietário:
+## Estado do ambiente de demonstração
 
-- [Serviço Java no Render](https://dashboard.render.com/web/srv-dbtsnt56e07s73b3um8g)
-- [PostgreSQL no Render](https://dashboard.render.com/d/dpg-dbtsni56e07s73b3tkfg-a)
-- [RabbitMQ no CloudAMQP](https://api.cloudamqp.com/console/6610511c-7d27-4a36-844b-d400dc09937a/details)
+Validação realizada em **17/11/2026**, no commit
+[`6541d86`](https://github.com/deryksouza2006/GS-FINAL/commit/6541d86b6b3787327a16d19e8791d002c01754fb):
 
-O serviço gratuito pode levar alguns segundos para responder após ficar inativo. O banco
-PostgreSQL gratuito é temporário e está programado para expirar em **17/12/2026**;
-para manter o ambiente depois dessa data, é necessário migrar para um plano persistente
-ou criar outro banco e executar novamente as migrations.
+| Componente | Estado verificado |
+| --- | --- |
+| API Java | Deploy `live` no Render; health, Swagger e OpenAPI respondendo `200` |
+| PostgreSQL | Versão 16.15, esquema validado pelo Hibernate e 19 migrations Flyway aplicadas |
+| RabbitMQ | CloudAMQP conectado por TLS na porta 5671 |
+| RAG | Quatro documentos institucionais versionados e indexados no PGVector |
+| Testes | 182 testes descobertos, 181 aprovados, 1 teste manual ignorado, 0 falhas |
 
-## Tecnologias iniciais
+O plano gratuito do Render desliga a instância após um período sem tráfego. No cold start
+observado, a aplicação levou cerca de **3 minutos e 30 segundos** para concluir a inicialização;
+depois disso, as rotas responderam normalmente. O PostgreSQL gratuito está programado para
+expirar em **17/12/2026**. Para manter a demonstração após essa data, será necessário migrar
+o banco para um plano persistente ou provisionar outro banco e reaplicar as migrations.
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    Mobile[Aplicativo mobile]
+    Device[Sensor ou simulador IoT]
+    Client[Swagger / Postman]
+
+    subgraph Java[API AgroConecta - Spring Boot]
+        Security[JWT e controle de acesso]
+        Domain[Cadastros, leituras, atividades e painel]
+        Outbox[Outbox transacional]
+        Workers[Consumidores assíncronos]
+        Guidance[Orientação contextual]
+    end
+
+    DB[(PostgreSQL 16)]
+    Vector[(PGVector / RAG)]
+    Rabbit[(RabbitMQ / CloudAMQP)]
+    Gemini[Gemini Developer API]
+
+    Mobile -->|HTTPS + JWT| Security
+    Client -->|HTTPS + JWT| Security
+    Device -->|X-Device-Key| Domain
+    Security --> Domain
+    Domain --> DB
+    Domain --> Outbox
+    Outbox --> DB
+    Outbox --> Rabbit
+    Rabbit --> Workers
+    Workers --> DB
+    Guidance --> Vector
+    Guidance --> Gemini
+    Guidance --> DB
+    Vector --- DB
+```
+
+O risco hídrico é calculado por regras determinísticas e permanece disponível mesmo quando
+o provedor de IA está indisponível. A IA acrescenta uma orientação explicada e acompanhada
+das fontes recuperadas; ela não substitui nem altera silenciosamente o resultado das regras.
+
+### Fluxo assíncrono de análise
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Producer as Produtor
+    participant API as API Java
+    participant DB as PostgreSQL
+    participant Outbox as Publicador Outbox
+    participant MQ as RabbitMQ
+    participant Worker as Consumidor de risco
+    participant RAG as PGVector
+    participant AI as Gemini
+
+    Producer->>API: POST /api/crop-areas/{id}/risk-jobs
+    API->>DB: Grava job + snapshot + evento na mesma transação
+    API-->>Producer: 202 Accepted + ID do job
+    Outbox->>DB: Busca eventos pendentes com bloqueio
+    Outbox->>MQ: Publica risk.analysis.requested
+    MQ-->>Outbox: Confirmação do broker
+    Outbox->>DB: Marca evento como publicado
+    MQ->>Worker: Entrega o job
+    Worker->>DB: Calcula risco e persiste resultado/alerta
+    Producer->>API: POST /api/risk-jobs/{id}/guidance
+    API->>RAG: Recupera contexto e fontes
+    API->>AI: Envia somente o contexto necessário
+    AI-->>API: Orientação estruturada
+    API->>DB: Persiste orientação e referências
+    API-->>Producer: Resultado determinístico + guidance
+```
+
+### Modelo relacional
+
+O diagrama mostra as tabelas principais. `outbox_events`, `agronomy_vector_store` e
+`rag_ingestion` são tabelas de infraestrutura e não dependem de uma chave estrangeira para
+o agregado de negócio.
+
+```mermaid
+erDiagram
+    USERS ||--o{ FARMS : possui
+    USERS ||--o{ FIELD_ACTIVITIES : registra
+    USERS ||--o{ RISK_JOBS : solicita
+    USERS ||--o{ FARM_TECHNICIANS : atua
+    FARMS ||--o{ CROP_AREAS : contem
+    FARMS ||--o{ FARM_TECHNICIANS : autoriza
+    CROP_AREAS ||--o{ SENSORS : monitora
+    CROP_AREAS ||--o{ FIELD_ACTIVITIES : historico
+    CROP_AREAS ||--o{ AGRONOMIC_PROFILES : versiona
+    CROP_AREAS ||--o{ RISK_JOBS : analisa
+    CROP_AREAS ||--o{ AGRONOMIC_ANALYSES : recebe
+    SENSORS ||--o{ SENSOR_READINGS : produz
+    SENSOR_READINGS ||--o| AGRONOMIC_ANALYSES : origina
+    AGRONOMIC_PROFILES ||--o{ RISK_JOBS : referencia
+
+    USERS {
+        bigint id PK
+        varchar email UK
+        varchar password_hash
+        varchar role
+        boolean active
+    }
+    FARMS {
+        bigint id PK
+        bigint owner_user_id FK
+        varchar name
+        numeric total_area
+        varchar area_unit
+    }
+    CROP_AREAS {
+        bigint id PK
+        bigint farm_id FK
+        varchar crop_type
+        numeric area_size
+        varchar status
+    }
+    FARM_TECHNICIANS {
+        bigint farm_id PK,FK
+        bigint technician_id PK,FK
+    }
+    SENSORS {
+        bigint id PK
+        bigint crop_area_id FK
+        varchar device_code UK
+        varchar sensor_type
+        varchar status
+        varchar device_key_hash
+    }
+    SENSOR_READINGS {
+        bigint id PK
+        bigint sensor_id FK
+        numeric soil_moisture_percent
+        numeric rainfall_millimeters
+        varchar source
+        timestamptz measured_at
+    }
+    FIELD_ACTIVITIES {
+        bigint id PK
+        bigint crop_area_id FK
+        bigint author_id FK
+        varchar type
+        timestamptz performed_at
+    }
+    AGRONOMIC_PROFILES {
+        bigint id PK
+        bigint crop_area_id FK
+        bigint revision
+        double field_capacity_percent
+        double wilting_point_percent
+    }
+    RISK_JOBS {
+        bigint id PK
+        bigint crop_area_id FK
+        bigint owner_id FK
+        bigint profile_id FK
+        varchar status
+        jsonb measurements
+        jsonb result
+        jsonb guidance
+    }
+    AGRONOMIC_ANALYSES {
+        bigint id PK
+        bigint reading_id FK,UK
+        bigint crop_area_id FK
+        varchar risk_level
+        jsonb retrieved_sources
+    }
+```
+
+As 19 migrations ficam em [`src/main/resources/db/migration`](src/main/resources/db/migration).
+O Flyway cria as extensões necessárias, tabelas, constraints, índices e o índice vetorial
+HNSW. O Hibernate opera com `ddl-auto=validate`, portanto a aplicação valida o modelo, mas
+não altera o esquema por conta própria.
+
+## Regras centrais
+
+- Cada propriedade pertence a um produtor; cultivos, sensores, leituras, jobs e alertas são
+  consultados sempre dentro desse limite de propriedade.
+- Recursos inexistentes e recursos de outro produtor retornam a mesma resposta `404`, evitando
+  revelar IDs alheios.
+- Cadastro público cria apenas `PRODUCER`. Ações técnicas exigem associação prévia do técnico
+  à propriedade; papéis administrativos não são concedidos pelo endpoint público.
+- Leituras registram a origem `MANUAL`, `DEVICE` ou `SIMULATED`. Dados simulados permanecem
+  identificados nas respostas e no histórico.
+- A chave do dispositivo é exibida somente na criação/rotação; o banco armazena apenas o hash.
+- A soma das áreas de cultivo não pode ultrapassar a área total da propriedade, inclusive em
+  transferências e requisições concorrentes.
+- O padrão outbox mantém a gravação do evento atômica com a operação de negócio. Confirmações,
+  retentativas, backoff e filas de erro evitam perda silenciosa de mensagens.
+- Segredos, tokens, prompts completos e credenciais não são registrados em log nem versionados.
+
+## Mapa da API
+
+| Módulo | Rotas principais | Finalidade |
+| --- | --- | --- |
+| Autenticação | `/api/auth/register`, `/login`, `/me` | Cadastro, login e identidade do usuário autenticado |
+| Propriedades | `/api/farms` | CRUD de propriedades e associação de técnicos |
+| Cultivos | `/api/crop-areas` | CRUD, capacidade da propriedade e arquivamento |
+| Atividades | `/api/crop-areas/{id}/activities` | Irrigação, adubação, plantio e colheita |
+| Perfil agronômico | `/api/crop-areas/{id}/agronomic-profile` | Parâmetros de solo versionados por cultivo |
+| Sensores | `/api/sensors` | Cadastro, manutenção, saúde e chave de dispositivo |
+| Leituras | `/api/sensor-readings`, `/api/device-readings` | Entrada manual ou autenticada por dispositivo |
+| Simulação | `/api/simulated-readings`, `/api/crop-areas/{id}/sensor-readings/simulate` | Cenários identificados para demonstração |
+| Risco e alertas | `/api/crop-areas/{id}/risk-jobs`, `/api/alerts` | Job assíncrono, classificação e ciclo do alerta |
+| Orientação | `/api/risk-jobs/{id}/guidance` | Resposta contextual com RAG e fontes |
+| Análises legadas | `/api/analyses` | Consulta e retry do fluxo preservado por leitura |
+| Painel | `/api/dashboard` | Resumo operacional do produtor |
+
+O Swagger contém os corpos, parâmetros e respostas de cada operação. As seções seguintes
+documentam as regras e exemplos dos contratos mais importantes.
+
+## Tecnologias
 
 - Java 21
 - Spring Boot 4.1.2
@@ -50,9 +284,9 @@ ou criar outro banco e executar novamente as migrations.
 1. Copie `.env.example` para `.env` e ajuste os valores locais.
 2. Suba PostgreSQL/PGvector e RabbitMQ:
 
-```bash
-docker compose up -d
-```
+   ```bash
+   docker compose up -d
+   ```
 
 3. Exporte as variáveis de `.env` no terminal ou configure-as no ambiente de execução da IDE.
    O Docker Compose lê `.env`, mas isso não exporta as variáveis para o processo Java.
@@ -60,9 +294,9 @@ docker compose up -d
    `GOOGLE_API_KEY` só é necessária com `APP_AI_ENABLED=true`. Por padrão, a IA fica desativada.
 4. Inicie a API:
 
-```bash
-./mvnw spring-boot:run
-```
+   ```bash
+   ./mvnw spring-boot:run
+   ```
 
 No PowerShell, use `./mvnw.cmd spring-boot:run` e configure as variáveis com
 `$env:NOME_DA_VARIAVEL = 'valor'`.
@@ -596,7 +830,7 @@ docker compose up -d
 ./mvnw.cmd spring-boot:run
 ```
 
-Painel: **http://localhost:15672**. AMQP: `localhost:5672`. Use `RABBITMQ_USERNAME`
+Painel: `http://localhost:15672`. AMQP: `localhost:5672`. Use `RABBITMQ_USERNAME`
 e `RABBITMQ_PASSWORD` definidos no ambiente; `.env.example` contém apenas valores de
 desenvolvimento. Substitua também o placeholder `JWT_SECRET` antes de executar.
 Se o broker já tiver dados persistidos, alterar variáveis de credenciais não altera
@@ -616,7 +850,7 @@ automaticamente os usuários existentes do RabbitMQ.
 | `OUTBOX_MAX_ATTEMPTS` | `5`, limite de falhas antes de `FAILED` |
 | `OUTBOX_CONFIRM_TIMEOUT_MS` | `5000`, espera por confirmação do broker |
 
-### Exemplos PowerShell
+### Exemplos PowerShell de leituras
 
 Usando `$token` do login, `$sensorId` de um sensor ACTIVE próprio e `$cropAreaId`:
 
@@ -640,16 +874,27 @@ curl.exe -i -X DELETE "http://localhost:8080/api/sensor-readings/$readingId" -H 
 Com Java 21 e Docker em execução:
 
 ```bash
-./mvnw test
-./mvnw clean package
+./mvnw clean verify
 ```
 
-No PowerShell, use `./mvnw.cmd test` e `./mvnw.cmd clean package`.
+No PowerShell, use `./mvnw.cmd clean verify`. O mesmo comando compila, executa toda a suíte,
+valida o pacote e gera `target/citizentech-api-0.0.1-SNAPSHOT.jar`.
+
+Última execução completa, em 17/11/2026:
+
+| Suítes | Testes descobertos | Aprovados | Ignorados | Falhas | Erros |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 21 | 182 | 181 | 1 | 0 | 0 |
+
+O único teste ignorado é `GeminiManualTests.realGeminiReturnsValidStructuredAdviceWithInstitutionalSources`.
+Ele chama o provedor externo e só é habilitado deliberadamente com
+`RUN_GEMINI_MANUAL_TEST`; a suíte automatizada não consome cota nem depende da internet.
+
 Os testes usam MockMvc com a cadeia real de segurança, hashes e JWTs reais,
-e PostgreSQL/PGvector em um container descartável do Testcontainers.
+PostgreSQL/PGVector e RabbitMQ em containers descartáveis do Testcontainers.
 Não usam H2, mocks de autenticação ou o banco local do Compose. Os cadastros existem
 apenas durante os testes, com rollback ou limpeza explícita no teste concorrente,
-e o container é removido ao encerrar a suíte.
+e os containers são removidos ao encerrar a suíte.
 O teste original de carregamento do contexto foi preservado e usa a mesma infraestrutura isolada.
 Os testes de Farm cobrem CRUD com persistência real, paginação, isolamento entre produtores,
 rejeição de IDs de proprietário no JSON, validações, ausência de token, papéis não autorizados,
@@ -662,10 +907,8 @@ global/concorrente de código, status, transferência, paginação sem N+1, isol
 validações, permissões, campos proibidos e exclusão protegida da CropArea.
 Testes de leituras/outbox cobrem validação por tipo, isolamento, atomicidade/rollback,
 payload privado, eventos não commitados, ordenação/latest, exclusões, idempotência,
-retry/backoff e publicadores concorrentes. Os testes normais desativam scheduler e
-listener e não exigem RabbitMQ externo; falhas de envio usam mocks. Somente os dois
-testes de `ReadingRabbitIntegrationTests` iniciam um RabbitMQ descartável, comprovando
-publicação com confirms, consumo e retry/DLQ reais.
+retry/backoff e publicadores concorrentes. `ReadingRabbitIntegrationTests` inicia um
+RabbitMQ descartável e comprova publicação com confirms, consumo e retry/DLQ reais.
 
 Durante o desenvolvimento, prefira testes direcionados, por exemplo:
 
@@ -673,8 +916,8 @@ Durante o desenvolvimento, prefira testes direcionados, por exemplo:
 ./mvnw.cmd '-Dtest=CropAreaIntegrationTests' test
 ```
 
-Para a validação final, `./mvnw.cmd clean package` já executa toda a suíte e gera o JAR;
-não é necessário executar a suíte inteira separadamente antes dele.
+Para a validação final, `./mvnw.cmd clean verify` já executa toda a suíte e gera o JAR;
+não é necessário rodar `test` ou `package` separadamente antes dele.
 
 Referências: [Spring Boot AMQP](https://docs.spring.io/spring-boot/reference/messaging/amqp.html),
 [publisher confirms e returns](https://docs.spring.io/spring-amqp/reference/amqp/template.html),
@@ -758,7 +1001,7 @@ demonstrativos e leituras simuladas. A orientação não substitui avaliação a
 
 ### Teste manual real controlado
 
-1. Execute os testes locais com Java 21 e uma vez `./mvnw clean package`, sem chave
+1. Execute os testes locais com Java 21 e uma vez `./mvnw clean verify`, sem chave
    e sem habilitar o teste externo opt-in do legado.
 2. Disponibilize GOOGLE_API_KEY somente no ambiente Java por mecanismo local seguro;
    use os valores definitivos acima com APP_AI_ENABLED=true. Reinicie somente a API,
@@ -895,7 +1138,7 @@ $env:APP_AI_ENABLED = 'true'
 ./mvnw.cmd spring-boot:run
 ```
 
-A API continua em http://localhost:8080 e o painel RabbitMQ em http://localhost:15672.
+A API continua em `http://localhost:8080` e o painel RabbitMQ em `http://localhost:15672`.
 Sem a chave, mantenha `APP_AI_ENABLED=false`. Mensagens já confirmadas enquanto a IA
 estava desligada precisam de retry pela API depois da habilitação.
 
@@ -981,7 +1224,7 @@ Remove-Item Env:RUN_GEMINI_MANUAL_TEST
 
 Ele usa PostgreSQL descartável e chama embeddings/chat reais, sem RabbitMQ externo.
 Não é executado na build comum. Para a validação completa sem chave:
-`./mvnw.cmd clean package`.
+`./mvnw.cmd clean verify`.
 
 Referências: [compatibilidade Spring AI](https://docs.spring.io/spring-ai/reference/getting-started.html),
 [Google GenAI Chat](https://docs.spring.io/spring-ai/reference/api/chat/google-genai-chat.html),
