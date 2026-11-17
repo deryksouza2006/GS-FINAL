@@ -26,10 +26,7 @@ spring:
   flyway:
     enabled: true
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
+    addresses: ${RABBITMQ_ADDRESSES:amqp://${RABBITMQ_USERNAME:guest}:${RABBITMQ_PASSWORD:guest}@${RABBITMQ_HOST:localhost}:${RABBITMQ_PORT:5672}}
     connection-timeout: 3s
     publisher-confirm-type: correlated
     publisher-returns: true
