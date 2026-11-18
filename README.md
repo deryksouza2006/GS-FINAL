@@ -6,10 +6,6 @@ cultivos, sensores, leituras, histórico de campo, alertas e análise de risco. 
 assíncrono usa RabbitMQ; a orientação contextual combina Spring AI, Gemini e um acervo RAG
 armazenado no PostgreSQL com PGVector.
 
-> **Compatibilidade:** AgroConecta é o nome público do projeto. O package
-> `br.com.fiap.citizentech`, o artifactId `citizentech-api` e alguns nomes internos foram
-> preservados para não quebrar o código e os contratos já existentes.
-
 ## Integrantes
 
 | Nome | GitHub |
@@ -29,11 +25,6 @@ armazenado no PostgreSQL com PGVector.
 | Coleção Postman | [AgroConecta.postman_collection.json](postman/AgroConecta.postman_collection.json) | Neste repositório |
 | Aplicativo mobile | [AgroSolution](https://github.com/deryksouza2006/AgroSolution) | Público |
 
-Os painéis do [serviço Java](https://dashboard.render.com/web/srv-dbtsnt56e07s73b3um8g),
-do [PostgreSQL](https://dashboard.render.com/d/dpg-dbtsni56e07s73b3tkfg-a) e do
-[RabbitMQ](https://api.cloudamqp.com/console/6610511c-7d27-4a36-844b-d400dc09937a/details)
-exigem acesso às contas da equipe e não expõem credenciais.
-
 ## Estado do ambiente de demonstração
 
 Validação realizada em **17/11/2026**, no commit
@@ -50,8 +41,7 @@ Validação realizada em **17/11/2026**, no commit
 O plano gratuito do Render desliga a instância após um período sem tráfego. No cold start
 observado, a aplicação levou cerca de **3 minutos e 30 segundos** para concluir a inicialização;
 depois disso, as rotas responderam normalmente. O PostgreSQL gratuito está programado para
-expirar em **17/12/2026**. Para manter a demonstração após essa data, será necessário migrar
-o banco para um plano persistente ou provisionar outro banco e reaplicar as migrations.
+expirar em **17/12/2026**.
 
 ## Arquitetura
 
