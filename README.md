@@ -46,6 +46,22 @@ observado, a aplicação levou cerca de **3 minutos e 30 segundos** para conclui
 depois disso, as rotas responderam normalmente. O PostgreSQL gratuito está programado para
 expirar em **17/12/2026**.
 
+### Usuário de demonstração
+
+Use esta conta descartável para testar o aplicativo mobile e os endpoints protegidos no ambiente
+publicado:
+
+| Campo | Valor |
+| --- | --- |
+| E-mail | `demo.java@agroconecta.com` |
+| Senha | `AgroConecta2026!` |
+| Papel | `PRODUCER` |
+
+Antes de entrar no aplicativo, abra o [health check](https://agroconecta-api-ms1a.onrender.com/actuator/health)
+e aguarde a resposta `UP`. Como a API utiliza o plano gratuito do Render, a primeira requisição após
+um período sem acesso pode levar alguns minutos. As credenciais acima são exclusivas para demonstração
+acadêmica e não devem ser reutilizadas em outros serviços.
+
 ## Arquitetura
 
 ```mermaid
@@ -285,8 +301,6 @@ A proposta se relaciona ao **ODS 2**, pelo acesso de pequenos produtores a infor
 **Evidências existentes:** a suíte final documentada contém **182 testes: 181 aprovados, um teste manual ignorado e zero falhas**. A integração real **Gemini + RAG foi validada anteriormente**, com orientação válida persistida e risco preservado. O relatório histórico de integração registra a contagem de sua própria etapa; o total atual está em [Testes e empacotamento](#testes-e-empacotamento). Nenhum teste ou nova chamada ao provedor foi executado na resolução deste conflito.
 
 A arquitetura, as fontes, os cenários de avaliação e as evidências da auditoria e da integração real estão consolidados no documento de entrega indicado na tabela de links. O GS-FINAL é o repositório oficial de IoT/IA; o AgroSolution é a interface complementar.
-
-A identificação acadêmica dos integrantes, com RMs, permanece pendente de confirmação. Nenhum nome ou RM foi inferido e o arquivo de identificação não foi criado. As instruções atuais de execução, configuração, deploy e contratos da API permanecem nas respectivas seções técnicas deste README.
 
 ## Tecnologias
 
