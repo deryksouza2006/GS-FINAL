@@ -81,6 +81,8 @@ flowchart LR
     Guidance --> Gemini
     Guidance --> DB
     Vector --- DB
+
+
 ```
 
 O risco hídrico é calculado por regras determinísticas e permanece disponível mesmo quando
