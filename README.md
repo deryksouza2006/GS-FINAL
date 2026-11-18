@@ -1029,23 +1029,6 @@ do job do proprietário autenticado e tipos/datas de suas atividades, sem descri
 livres do diário ou dados de outro produtor. Avisos distinguem parâmetros
 demonstrativos e leituras simuladas. A orientação não substitui avaliação agronômica.
 
-### Teste manual real controlado
-
-1. Execute os testes locais com Java 21 e uma vez `./mvnw clean verify`, sem chave
-   e sem habilitar o teste externo opt-in do legado.
-2. Disponibilize GOOGLE_API_KEY somente no ambiente Java por mecanismo local seguro;
-   use os valores definitivos acima com APP_AI_ENABLED=true. Reinicie somente a API,
-   preservando PostgreSQL, RabbitMQ, os quatro vetores e os dados da auditoria.
-3. Confirme `/actuator/health`. Faça uma única geração diagnóstica curta e estruturada
-   no gemini-3.5-flash-lite. Registre apenas HTTP, modelo e validade do JSON, sem chave
-   ou resposta bruta de erro. Se falhar, pare; não tente guidance para forçar sucesso.
-4. Se funcionar, autentique a conta de auditoria sem registrar senha/JWT. Confirme
-   que o job crítico #11 pertence a ela e continua CRITICAL com alerta OPEN.
-5. Faça exatamente um POST sem body em `/api/risk-jobs/11/guidance`, seguido de GET
-   no mesmo ID. Compare guidance e todos os snapshots/estado do alerta. Não crie job.
-6. Orçamento: no máximo duas gerações de chat (diagnóstica + guidance) e uma chamada
-   de embedding de consulta. Nenhuma reingestão, retry automático, DELETE ou commit.
-
 A camada gratuita está sujeita às cotas de RPM/TPM/RPD do projeto e à disponibilidade
 dos modelos; 429/RESOURCE_EXHAUSTED não deve gerar repetição automática. Não há garantia
 de sucesso ou disponibilidade. Confira os limites atuais no
