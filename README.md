@@ -24,6 +24,7 @@ armazenado no PostgreSQL com PGVector.
 | Health check | [Estado da aplicação](https://agroconecta-api-ms1a.onrender.com/actuator/health) | Público |
 | Coleção Postman | [AgroConecta.postman_collection.json](postman/AgroConecta.postman_collection.json) | Neste repositório |
 | Aplicativo mobile | [AgroSolution](https://github.com/deryksouza2006/AgroSolution) | Público |
+| Vídeo pitch | [Apresentação do AgroConecta](https://www.youtube.com/watch?v=G651JKZ_JVc) | Público |
 
 ## Estado do ambiente de demonstração
 
