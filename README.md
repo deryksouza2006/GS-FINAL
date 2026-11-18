@@ -8,10 +8,12 @@ armazenado no PostgreSQL com PGVector.
 
 ## Integrantes
 
-| Nome | GitHub |
-| --- | --- |
-| Lucas Viana | [@LucasViana130](https://github.com/LucasViana130) |
-| Deryk Souza | [@deryksouza2006](https://github.com/deryksouza2006) |
+| Nome | RM |
+|---|---|
+| Lucas Gonçalves Viana | 563254 |
+| Deryk de Souza Queiroz | 563412 |
+| Vinicius Paschoeto da Silva | 563089 |
+| Felipe Wiclif Leal da Silva| 563901 |
 
 ## Links da entrega
 
