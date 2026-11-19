@@ -27,6 +27,7 @@ armazenado no PostgreSQL com PGVector.
 | Coleção Postman | [AgroConecta.postman_collection.json](postman/AgroConecta.postman_collection.json) | Neste repositório |
 | Aplicativo mobile | [AgroSolution](https://github.com/deryksouza2006/AgroSolution) | Público |
 | Vídeo pitch | [Apresentação do AgroConecta](https://www.youtube.com/watch?v=G651JKZ_JVc) | Público |
+| Vídeo técnico de Java | [Demonstração e explicação da solução](https://www.youtube.com/watch?v=3SG4efRKDu4) | Público |
 
 ## Estado do ambiente de demonstração
 
